@@ -49,11 +49,17 @@ export const KeyManager = {
     });
   },
 
-  async getNextKey(groupId: string) {
-    const group = await prisma.keyGroup.findUnique({
-      where: { id: groupId },
+  async getNextKey(groupIdOrName: string) {
+    let group = await prisma.keyGroup.findUnique({
+      where: { id: groupIdOrName },
       include: { members: { include: { key: true } } },
     });
+    if (!group) {
+      group = await prisma.keyGroup.findFirst({
+        where: { name: groupIdOrName },
+        include: { members: { include: { key: true } } },
+      });
+    }
     if (!group || group.members.length === 0) return null;
 
     const activeMembers = group.members.filter((m) => m.key.active);
@@ -61,7 +67,7 @@ export const KeyManager = {
 
     const idx = group.currentIndex % activeMembers.length;
     await prisma.keyGroup.update({
-      where: { id: groupId },
+      where: { id: group.id },
       data: { currentIndex: { increment: 1 } },
     });
     return activeMembers[idx].key;
