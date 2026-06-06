@@ -8,6 +8,5 @@ declare module 'fastify' {
   interface FastifyRequest {
     tokenId?: string;
     tokenUser?: { id: string; email: string; name: string | null };
-    user?: { id: string; email: string; role: string };
   }
 }
