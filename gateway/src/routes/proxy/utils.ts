@@ -25,13 +25,15 @@ export async function handleProxy(
   }
 
   try {
+    const isGet = request.method === 'GET';
     const response = await proxyToFireworks(
       endpoint,
-      request.body,
+      isGet ? undefined : request.body,
       key.key,
       {
         Accept: request.headers['accept'] || 'application/json',
-      }
+      },
+      request.method
     );
 
     const latency = Date.now() - start;

@@ -4,17 +4,21 @@ export async function proxyToFireworks(
   endpoint: string,
   body: unknown,
   apiKey: string,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
+  method = 'POST'
 ) {
   const url = `${config.FIREWORKS_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    method: 'POST',
+  const opts: RequestInit = {
+    method,
     headers: {
-      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
       ...headers,
     },
-    body: JSON.stringify(body),
-  });
+  };
+  if (method !== 'GET' && body) {
+    opts.headers = { 'Content-Type': 'application/json', ...opts.headers };
+    opts.body = JSON.stringify(body);
+  }
+  const response = await fetch(url, opts);
   return response;
 }
