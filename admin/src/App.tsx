@@ -5,6 +5,8 @@ import Keys from './pages/Keys';
 import Groups from './pages/Groups';
 import Users from './pages/Users';
 import Logs from './pages/Logs';
+import Instructions from './pages/Instructions';
+import Tokens from './pages/Tokens';
 
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -22,6 +24,8 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Link to="/groups" className={`px-3 py-1 rounded ${nav('/groups')}`}>Groups</Link>
           <Link to="/users" className={`px-3 py-1 rounded ${nav('/users')}`}>Users</Link>
           <Link to="/logs" className={`px-3 py-1 rounded ${nav('/logs')}`}>Logs</Link>
+          <Link to="/tokens" className={`px-3 py-1 rounded ${nav('/tokens')}`}>Tokens</Link>
+          <Link to="/instructions" className={`px-3 py-1 rounded ${nav('/instructions')}`}>Instructions</Link>
           <button
             onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
             className="ml-auto px-3 py-1 bg-red-500 rounded hover:bg-red-600"
@@ -46,6 +50,8 @@ function App() {
           <Route path="/groups" element={<Groups />} />
           <Route path="/users" element={<Users />} />
           <Route path="/logs" element={<Logs />} />
+          <Route path="/tokens" element={<Tokens />} />
+          <Route path="/instructions" element={<Instructions />} />
         </Routes>
       </Layout>
     </BrowserRouter>

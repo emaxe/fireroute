@@ -16,8 +16,6 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tokens ServiceToken[]
-
   @@map("users")
 }
 
@@ -25,12 +23,10 @@ model ServiceToken {
   id        String   @id @default(uuid())
   token     String   @unique
   name      String?
-  userId    String   @map("user_id")
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   expiresAt DateTime? @map("expires_at")
 
-  user User @relation(fields: [userId], references: [id])
   logs RequestLog[]
 
   @@map("service_tokens")

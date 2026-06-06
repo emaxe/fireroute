@@ -5,7 +5,8 @@ interface User {
   id: string;
   email: string;
   name?: string;
-  tokens: { id: string; token: string; name?: string; active: boolean }[];
+  role: string;
+  createdAt: string;
 }
 
 export default function Users() {
@@ -28,16 +29,6 @@ export default function Users() {
     load();
   };
 
-  const createToken = async (userId: string) => {
-    await API.post(`/users/${userId}/tokens`, { name: 'default' });
-    load();
-  };
-
-  const revokeToken = async (tokenId: string) => {
-    await API.delete(`/users/tokens/${tokenId}`);
-    load();
-  };
-
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Service Users</h1>
@@ -48,23 +39,24 @@ export default function Users() {
         <button onClick={add} className="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
       </div>
       <table className="w-full bg-white rounded shadow">
-        <thead><tr className="border-b"><th className="p-2 text-left">Email</th><th className="p-2 text-left">Name</th><th className="p-2 text-left">Tokens</th><th className="p-2 text-left">Actions</th></tr></thead>
+        <thead>
+          <tr className="border-b">
+            <th className="p-2 text-left">Email</th>
+            <th className="p-2 text-left">Name</th>
+            <th className="p-2 text-left">Role</th>
+            <th className="p-2 text-left">Created</th>
+            <th className="p-2 text-left">Actions</th>
+          </tr>
+        </thead>
         <tbody>
           {users.map((u) => (
             <tr key={u.id} className="border-b">
               <td className="p-2">{u.email}</td>
               <td className="p-2">{u.name || '-'}</td>
+              <td className="p-2">{u.role}</td>
+              <td className="p-2 text-sm text-gray-500">{new Date(u.createdAt).toLocaleString()}</td>
               <td className="p-2">
-                {u.tokens.map((t) => (
-                  <span key={t.id} className={`inline-flex items-center gap-1 px-2 py-1 rounded mr-2 ${t.active ? 'bg-green-100' : 'bg-gray-100'}`}>
-                    {t.name || t.token.slice(0, 8)}...
-                    <button onClick={() => revokeToken(t.id)} className="text-red-400">x</button>
-                  </span>
-                ))}
-                <button onClick={() => createToken(u.id)} className="text-blue-500 text-sm">+ token</button>
-              </td>
-              <td className="p-2">
-                <button onClick={() => remove(u.id)} className="text-red-500">Delete</button>
+                <button onClick={() => remove(u.id)} className="text-red-500 text-sm">Delete</button>
               </td>
             </tr>
           ))}

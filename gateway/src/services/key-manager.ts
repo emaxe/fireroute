@@ -15,6 +15,15 @@ export const KeyManager = {
   },
 
   async deleteKey(id: string) {
+    const key = await prisma.apiKey.findUnique({
+      where: { id },
+      include: { groups: true },
+    });
+    if (!key) throw new Error('Key not found');
+    if (key.groups.length > 0) {
+      const groupNames = key.groups.map((g) => g.groupId).join(', ');
+      throw new Error(`Cannot delete key assigned to group(s). Remove from groups first. Group IDs: ${groupNames}`);
+    }
     return prisma.apiKey.delete({ where: { id } });
   },
 

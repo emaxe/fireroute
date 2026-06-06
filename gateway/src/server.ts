@@ -10,6 +10,7 @@ import { authRoutes } from './routes/admin/auth.js';
 import { keysRoutes } from './routes/admin/keys.js';
 import { groupsRoutes } from './routes/admin/groups.js';
 import { usersRoutes } from './routes/admin/users.js';
+import { tokensRoutes } from './routes/admin/tokens.js';
 import { statsRoutes } from './routes/admin/stats.js';
 import { openaiRoutes } from './routes/proxy/openai.js';
 import { anthropicRoutes } from './routes/proxy/anthropic.js';
@@ -28,6 +29,7 @@ await server.register(authRoutes, { prefix: '/api/v1/admin/auth' });
 await server.register(keysRoutes, { prefix: '/api/v1/admin/keys' });
 await server.register(groupsRoutes, { prefix: '/api/v1/admin/groups' });
 await server.register(usersRoutes, { prefix: '/api/v1/admin/users' });
+await server.register(tokensRoutes, { prefix: '/api/v1/admin/tokens' });
 await server.register(statsRoutes, { prefix: '/api/v1/admin/stats' });
 
 await server.register(openaiRoutes, { prefix: '/v1' });

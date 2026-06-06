@@ -23,16 +23,4 @@ export async function usersRoutes(server: FastifyInstance) {
     await UserManager.deleteUser(id);
     return reply.status(204).send();
   });
-
-  server.post('/:id/tokens', { onRequest: server.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { name } = request.body as { name?: string };
-    return UserManager.createServiceToken(id, name);
-  });
-
-  server.delete('/tokens/:tokenId', { onRequest: server.authenticate }, async (request, reply) => {
-    const { tokenId } = request.params as { tokenId: string };
-    await UserManager.revokeToken(tokenId);
-    return reply.status(204).send();
-  });
 }

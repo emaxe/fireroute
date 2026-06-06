@@ -13,13 +13,11 @@ export const bearerAuthPlugin = fp(async (server) => {
     const token = auth.slice(7);
     const dbToken = await prisma.serviceToken.findUnique({
       where: { token },
-      include: { user: true },
     });
     if (!dbToken || !dbToken.active || (dbToken.expiresAt && dbToken.expiresAt < new Date())) {
       reply.status(401).send({ error: 'Invalid or expired token' });
       return;
     }
     request.tokenId = dbToken.id;
-    request.tokenUser = dbToken.user;
   });
 });

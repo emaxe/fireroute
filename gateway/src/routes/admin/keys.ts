@@ -16,8 +16,15 @@ export async function keysRoutes(server: FastifyInstance) {
 
   server.delete('/:id', { onRequest: server.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    await KeyManager.deleteKey(id);
-    return reply.status(204).send();
+    try {
+      await KeyManager.deleteKey(id);
+      return reply.status(204).send();
+    } catch (err: any) {
+      if (err.message?.includes('Cannot delete key assigned to group')) {
+        return reply.status(409).send({ error: err.message });
+      }
+      throw err;
+    }
   });
 
   server.patch('/:id', { onRequest: server.authenticate }, async (request, reply) => {

@@ -13,6 +13,7 @@ export default function Keys() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
+  const [error, setError] = useState('');
 
   const load = () => API.get('/keys').then((res) => setKeys(res.data));
 
@@ -24,8 +25,17 @@ export default function Keys() {
   };
 
   const remove = async (id: string) => {
-    await API.delete(`/keys/${id}`);
-    load();
+    setError('');
+    try {
+      await API.delete(`/keys/${id}`);
+      load();
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setError(err.response.data?.error || 'Cannot delete key assigned to group(s). Remove from groups first.');
+      } else {
+        setError('Failed to delete key');
+      }
+    }
   };
 
   const toggle = async (id: string, active: boolean) => {
@@ -36,6 +46,7 @@ export default function Keys() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">API Keys</h1>
+      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
       <div className="flex gap-2 mb-4">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="border p-2 rounded flex-1" />
         <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="Fireworks API Key" className="border p-2 rounded flex-1" />

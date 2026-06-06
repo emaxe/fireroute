@@ -41,7 +41,7 @@ export const StatsService = {
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
-        token: { include: { user: { select: { email: true, name: true } } } },
+        token: { select: { name: true } },
         key: { select: { name: true } },
       },
     });
