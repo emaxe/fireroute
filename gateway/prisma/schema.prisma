@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tokens ServiceToken[]
+
+  @@map("users")
+}
+
+model ServiceToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  name      String?
+  userId    String   @map("user_id")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime? @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id])
+  logs RequestLog[]
+
+  @@map("service_tokens")
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  name      String
+  key       String
+  active    Boolean  @default(true)
+  lastUsed  DateTime? @map("last_used")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  groups GroupMember[]
+  logs   RequestLog[]
+
+  @@map("api_keys")
+}
+
+model KeyGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members      GroupMember[]
+  currentIndex Int           @default(0) @map("current_index")
+
+  @@map("key_groups")
+}
+
+model GroupMember {
+  id      String @id @default(uuid())
+  groupId String @map("group_id")
+  keyId   String @map("key_id")
+
+  group KeyGroup @relation(fields: [groupId], references: [id])
+  key   ApiKey   @relation(fields: [keyId], references: [id])
+
+  @@unique([groupId, keyId])
+  @@map("group_members")
+}
+
+model RequestLog {
+  id        String   @id @default(uuid())
+  tokenId   String?  @map("token_id")
+  keyId     String?  @map("key_id")
+  groupId   String?  @map("group_id")
+  endpoint  String
+  status    Int
+  latencyMs Int      @map("latency_ms")
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  token ServiceToken? @relation(fields: [tokenId], references: [id])
+  key   ApiKey?       @relation(fields: [keyId], references: [id])
+
+  @@map("request_logs")
+}

@@ -1,0 +1,69 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export const KeyManager = {
+  async listKeys() {
+    return prisma.apiKey.findMany({
+      include: { groups: { include: { group: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async createKey(data: { name: string; key: string }) {
+    return prisma.apiKey.create({ data });
+  },
+
+  async deleteKey(id: string) {
+    return prisma.apiKey.delete({ where: { id } });
+  },
+
+  async toggleKey(id: string, active: boolean) {
+    return prisma.apiKey.update({ where: { id }, data: { active } });
+  },
+
+  async listGroups() {
+    return prisma.keyGroup.findMany({
+      include: { members: { include: { key: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+
+  async createGroup(data: { name: string; description?: string }) {
+    return prisma.keyGroup.create({ data });
+  },
+
+  async deleteGroup(id: string) {
+    return prisma.keyGroup.delete({ where: { id } });
+  },
+
+  async assignKeyToGroup(groupId: string, keyId: string) {
+    return prisma.groupMember.create({
+      data: { groupId, keyId },
+    });
+  },
+
+  async removeKeyFromGroup(groupId: string, keyId: string) {
+    return prisma.groupMember.deleteMany({
+      where: { groupId, keyId },
+    });
+  },
+
+  async getNextKey(groupId: string) {
+    const group = await prisma.keyGroup.findUnique({
+      where: { id: groupId },
+      include: { members: { include: { key: true } } },
+    });
+    if (!group || group.members.length === 0) return null;
+
+    const activeMembers = group.members.filter((m) => m.key.active);
+    if (activeMembers.length === 0) return null;
+
+    const idx = group.currentIndex % activeMembers.length;
+    await prisma.keyGroup.update({
+      where: { id: groupId },
+      data: { currentIndex: { increment: 1 } },
+    });
+    return activeMembers[idx].key;
+  },
+};
