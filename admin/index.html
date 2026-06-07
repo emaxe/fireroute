@@ -3,10 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FireGate Admin</title>
+    <title>FireRoute Admin</title>
+
+    <!-- General Sans (display headings) -->
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600,700&display=swap" rel="stylesheet" />
+
+    <!-- DM Sans (body) + JetBrains Mono (code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"General Sans"', 'sans-serif'],
+              sans:    ['"DM Sans"', 'sans-serif'],
+              mono:    ['"JetBrains Mono"', 'monospace'],
+            },
+          },
+        },
+      }
+    </script>
   </head>
-  <body>
+  <body class="bg-[#FAFAFA] text-[#0A0A0A] font-sans antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -9,14 +9,20 @@ interface User {
   createdAt: string;
 }
 
+const INPUT =
+  'border border-[#E8E8EC] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] bg-white ' +
+  'placeholder-[#9C9C9C] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
+
+const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]';
+const TD = 'px-4 py-3 text-sm';
+
 export default function Users() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [email, setEmail] = useState('');
+  const [users, setUsers]       = useState<User[]>([]);
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName]         = useState('');
 
   const load = () => API.get('/users').then((res) => setUsers(res.data));
-
   useEffect(() => { load(); }, []);
 
   const add = async () => {
@@ -31,37 +37,92 @@ export default function Users() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Service Users</h1>
-      <div className="flex gap-2 mb-4">
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="border p-2 rounded flex-1" />
-        <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="border p-2 rounded flex-1" type="password" />
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className="border p-2 rounded flex-1" />
-        <button onClick={add} className="bg-blue-600 text-white px-4 py-2 rounded">Add</button>
+      <div className="mb-8">
+        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">Service Users</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1">Users who can authenticate to the gateway API</p>
       </div>
-      <table className="w-full bg-white rounded shadow">
-        <thead>
-          <tr className="border-b">
-            <th className="p-2 text-left">Email</th>
-            <th className="p-2 text-left">Name</th>
-            <th className="p-2 text-left">Role</th>
-            <th className="p-2 text-left">Created</th>
-            <th className="p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id} className="border-b">
-              <td className="p-2">{u.email}</td>
-              <td className="p-2">{u.name || '-'}</td>
-              <td className="p-2">{u.role}</td>
-              <td className="p-2 text-sm text-gray-500">{new Date(u.createdAt).toLocaleString()}</td>
-              <td className="p-2">
-                <button onClick={() => remove(u.id)} className="text-red-500 text-sm">Delete</button>
-              </td>
+
+      {/* Add form */}
+      <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Add User</p>
+        <div className="flex gap-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className={`${INPUT} flex-1`}
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className={`${INPUT} w-44`}
+          />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Display name (optional)"
+            className={`${INPUT} flex-1`}
+          />
+          <button
+            onClick={add}
+            className="shrink-0 bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-2.5 rounded-[6px] text-sm font-medium
+                       transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(99,102,241,0.35)]"
+          >
+            Add User
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
+            <tr>
+              <th className={TH}>Email</th>
+              <th className={TH}>Name</th>
+              <th className={TH}>Role</th>
+              <th className={TH}>Created</th>
+              <th className={`${TH} text-right`}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-[#E8E8EC]">
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-[#9C9C9C]">
+                  No users yet. Add one above.
+                </td>
+              </tr>
+            )}
+            {users.map((u) => (
+              <tr key={u.id} className="hover:bg-[#FAFAFA] transition-colors">
+                <td className={`${TD} font-medium text-[#0A0A0A]`}>{u.email}</td>
+                <td className={`${TD} text-[#6B6B6B]`}>{u.name || <span className="text-[#9C9C9C]">—</span>}</td>
+                <td className={TD}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    u.role === 'admin'
+                      ? 'bg-indigo-50 text-[#6366F1]'
+                      : 'bg-gray-100 text-[#6B6B6B]'
+                  }`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className={`${TD} text-[#9C9C9C]`}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className={`${TD} text-right`}>
+                  <button
+                    onClick={() => remove(u.id)}
+                    className="text-sm font-medium text-[#EF4444] hover:text-red-700 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

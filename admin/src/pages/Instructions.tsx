@@ -1,75 +1,126 @@
 import CopyButton from '../components/CopyButton';
 
-export default function Instructions() {
-  const gatewayUrl = import.meta.env.VITE_API_URL?.replace('/api/v1/admin', '') || 'http://localhost:3000';
+const gatewayUrl =
+  (import.meta as any).env?.VITE_API_URL?.replace('/api/v1/admin', '') || 'http://localhost:3000';
 
-  const codeBlock = (title: string, cmd: string) => (
+function CodeBlock({ title, code }: { title?: string; code: string }) {
+  return (
     <div className="mb-4">
-      <h3 className="font-semibold text-sm text-gray-600 mb-1">{title}</h3>
+      {title && (
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-2">{title}</p>
+      )}
       <div className="relative">
-        <pre className="bg-gray-900 text-gray-100 p-3 pr-16 rounded text-sm overflow-x-auto whitespace-pre-wrap">{cmd}</pre>
-        <CopyButton text={cmd} />
+        <pre className="bg-[#0A0A0A] text-gray-100 p-4 pr-20 rounded-[8px] text-sm font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+          {code}
+        </pre>
+        <CopyButton text={code} variant="dark" />
       </div>
     </div>
   );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white border border-[#E8E8EC] rounded-xl p-6 mb-5">
+      <h2 className="font-display font-semibold text-lg text-[#0A0A0A] tracking-tight mb-4">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function InlineCode({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6B6B6B] px-1.5 py-0.5 rounded text-xs font-mono">
+      {children}
+    </code>
+  );
+}
+
+function MethodBadge({ method }: { method: string }) {
+  return (
+    <span className="text-xs font-medium bg-[#DCFCE7] text-[#10B981] px-2 py-0.5 rounded-[4px]">
+      {method}
+    </span>
+  );
+}
+
+export default function Instructions() {
+  const endpoints = [
+    {
+      method: 'POST',
+      path: '/v1/chat/completions',
+      label: 'OpenAI-compatible',
+      curl: `curl -X POST ${gatewayUrl}/v1/chat/completions \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`,
+    },
+    {
+      method: 'POST',
+      path: '/v1/messages',
+      label: 'Anthropic-compatible',
+      curl: `curl -X POST ${gatewayUrl}/v1/messages \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`,
+    },
+    {
+      method: 'POST',
+      path: '/v1/responses',
+      label: 'Responses API',
+      curl: `curl -X POST ${gatewayUrl}/v1/responses \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`,
+    },
+  ];
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-bold mb-4">API Instructions</h1>
-
-      <div className="bg-white p-6 rounded shadow mb-6">
-        <h2 className="text-lg font-bold mb-2">Base URL</h2>
-        <p className="text-gray-700 mb-1">
-          All proxy requests go to: <code className="bg-gray-100 px-2 py-1 rounded">{gatewayUrl}</code>
-        </p>
+      <div className="mb-8">
+        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">API Instructions</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1">How to use the FireRoute gateway from your applications</p>
       </div>
 
-      <div className="bg-white p-6 rounded shadow mb-6">
-        <h2 className="text-lg font-bold mb-2">Authentication</h2>
-        <p className="text-gray-700 mb-2">
-          Use a <strong>Bearer token</strong> in the <code>Authorization</code> header.
+      <Section title="Base URL">
+        <p className="text-sm text-[#6B6B6B] mb-3">All proxy requests go to:</p>
+        <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6366F1] px-3 py-1.5 rounded-[6px] text-sm font-mono">
+          {gatewayUrl}
+        </code>
+      </Section>
+
+      <Section title="Authentication">
+        <p className="text-sm text-[#6B6B6B] mb-4">
+          Use a <strong className="font-medium text-[#0A0A0A]">Bearer token</strong> in the{' '}
+          <InlineCode>Authorization</InlineCode> header. Generate tokens in the{' '}
+          <strong className="font-medium text-[#0A0A0A]">Tokens</strong> tab.
         </p>
-        <p className="text-gray-700 mb-2">
-          Create a service user in the <strong>Users</strong> tab, then generate a token. Use that token for all API calls.
+        <CodeBlock title="Header" code="Authorization: Bearer <your-service-token>" />
+      </Section>
+
+      <Section title="Endpoints">
+        <div className="space-y-8">
+          {endpoints.map(({ method, path, label, curl }) => (
+            <div key={path}>
+              <div className="flex items-center gap-2 mb-1">
+                <MethodBadge method={method} />
+                <code className="text-sm font-mono text-[#6B6B6B]">{gatewayUrl}{path}</code>
+              </div>
+              <p className="text-xs text-[#9C9C9C] mb-3">{label}</p>
+              <CodeBlock title="cURL" code={curl} />
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Key Groups">
+        <p className="text-sm text-[#6B6B6B] mb-4">
+          By default requests use the <InlineCode>default</InlineCode> group.
+          Pass <InlineCode>group</InlineCode> in the request body to target a specific group.
+          Load is distributed round-robin across all active keys in the chosen group.
         </p>
-        {codeBlock('Header', 'Authorization: Bearer <your-service-token>')}
-      </div>
-
-      <div className="bg-white p-6 rounded shadow mb-6">
-        <h2 className="text-lg font-bold mb-2">Endpoints</h2>
-
-        <h3 className="font-semibold mt-4 mb-1">OpenAI-compatible</h3>
-        <p className="text-sm text-gray-500 mb-2">POST {gatewayUrl}/v1/chat/completions</p>
-        {codeBlock('cURL', `curl -X POST ${gatewayUrl}/v1/chat/completions \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`)}
-
-        <h3 className="font-semibold mt-4 mb-1">Anthropic-compatible</h3>
-        <p className="text-sm text-gray-500 mb-2">POST {gatewayUrl}/v1/messages</p>
-        {codeBlock('cURL', `curl -X POST ${gatewayUrl}/v1/messages \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`)}
-
-        <h3 className="font-semibold mt-4 mb-1">Responses</h3>
-        <p className="text-sm text-gray-500 mb-2">POST {gatewayUrl}/v1/responses</p>
-        {codeBlock('cURL', `curl -X POST ${gatewayUrl}/v1/responses \\
-  -H "Authorization: Bearer <token>" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model":"accounts/fireworks/models/llama-v3p1-8b-instruct","messages":[{"role":"user","content":"Hello"}]}'`)}
-      </div>
-
-      <div className="bg-white p-6 rounded shadow mb-6">
-        <h2 className="text-lg font-bold mb-2">Key Groups</h2>
-        <p className="text-gray-700 mb-2">
-          By default requests use the <code>default</code> group. To target a specific group, pass <code>group</code> in the JSON body:
-        </p>
-        {codeBlock('Body', '{"group":"my-group-name","model":"...","messages":[...]}')}
-        <p className="text-gray-700 text-sm mt-2">
-          Load is distributed round-robin across all active keys inside the chosen group.
-        </p>
-      </div>
+        <CodeBlock title="Body" code={'{"group":"my-group-name","model":"...","messages":[...]}'} />
+      </Section>
     </div>
   );
 }
