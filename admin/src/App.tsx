@@ -8,6 +8,7 @@ import Logs from './pages/Logs';
 import Instructions from './pages/Instructions';
 import Tokens from './pages/Tokens';
 
+// Navigation links rendered in the top header; kept in one place so the order is explicit
 const NAV = [
   { to: '/',            label: 'Dashboard' },
   { to: '/keys',        label: 'Keys' },
@@ -18,11 +19,17 @@ const NAV = [
   { to: '/instructions',label: 'Instructions' },
 ];
 
+/**
+ * Shared layout wrapper that enforces JWT authentication.
+ * If no token is found in localStorage, every route except /login redirects to the login page.
+ * The sticky header with the nav bar is only shown when the user is authenticated.
+ */
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const token = localStorage.getItem('token');
   if (!token && location.pathname !== '/login') return <Navigate to="/login" />;
 
+  // Tailwind class helper: active page gets indigo text/background, inactive gets muted hover state
   const linkCls = (path: string) =>
     `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
       location.pathname === path
@@ -50,6 +57,11 @@ function Layout({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
 
+            {/**
+             * Logout wipes the token and forces a full page reload.
+             * Using window.location.href instead of client-side navigation ensures
+             * all React state is cleared and the auth guard re-runs immediately.
+             */}
             <button
               onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
               className="shrink-0 text-sm font-medium text-[#EF4444] border border-[#EF4444]/50 px-3 py-1.5 rounded-[6px] hover:bg-red-50 hover:border-[#EF4444] transition-colors"

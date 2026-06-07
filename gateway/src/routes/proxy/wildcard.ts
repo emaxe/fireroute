@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { handleProxy } from './utils.js';
 
+/**
+ * Catch-all proxy route that forwards any unmatched /v1/* request to Fireworks AI.
+ * This MUST be registered after the specific OpenAI, Anthropic, and Responses routes
+ * so that Fastify matches the more specific paths first.
+ */
 export async function wildcardRoutes(server: FastifyInstance) {
   server.all<{ Params: { '*': string } }>(
     '/*',
@@ -9,7 +14,7 @@ export async function wildcardRoutes(server: FastifyInstance) {
       // Rebuild endpoint: leading slash + wildcard capture (no prefix, no query)
       const path = '/' + request.params['*'];
 
-      // Preserve query string from the raw URL
+      // Preserve query string from the raw URL so upstream receives pagination/filters
       const qIdx = request.url.indexOf('?');
       const endpoint = qIdx >= 0 ? path + request.url.slice(qIdx) : path;
 
