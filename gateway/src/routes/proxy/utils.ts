@@ -84,6 +84,15 @@ export async function handleProxy(
       return;
     }
 
+    const isBinary = /^(image|audio|video)\/|^application\/octet-stream/.test(contentType);
+    if (isBinary) {
+      const buffer = await response.arrayBuffer();
+      reply.header('Content-Type', contentType);
+      const disposition = response.headers.get('content-disposition');
+      if (disposition) reply.header('Content-Disposition', disposition);
+      return reply.send(Buffer.from(buffer));
+    }
+
     const body = await response.json();
     return reply.send(body);
   } catch (err) {
