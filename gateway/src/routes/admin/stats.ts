@@ -48,7 +48,8 @@ export async function statsRoutes(server: FastifyInstance) {
         groupId: groupId || undefined,
         tokenId: tokenId || undefined,
       });
-    } catch {
+    } catch (err) {
+      server.log.error(err, 'getAnalytics failed');
       return emptyResponse;
     }
   });
