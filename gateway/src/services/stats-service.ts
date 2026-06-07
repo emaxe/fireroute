@@ -57,17 +57,21 @@ export const StatsService = {
     const { startTime, bucketFn, keyId, groupId, tokenId } = params;
 
     // Shared time + optional filter conditions (re-used by each query)
-    const baseConditions = (): Prisma.Sql[] => {
-      const c: Prisma.Sql[] = [Prisma.sql`created_at >= ${startTime}`];
-      if (keyId)   c.push(Prisma.sql`key_id   = ${keyId}`);
-      if (groupId) c.push(Prisma.sql`group_id = ${groupId}`);
-      if (tokenId) c.push(Prisma.sql`token_id = ${tokenId}`);
+    const baseConditions = (alias = ''): Prisma.Sql[] => {
+      const col = (name: string) => (alias ? `${alias}.${name}` : name);
+      const c: Prisma.Sql[] = [Prisma.sql`${Prisma.raw(col('created_at'))} >= ${startTime}`];
+      if (keyId)   c.push(Prisma.sql`${Prisma.raw(col('key_id'))}   = ${keyId}`);
+      if (groupId) c.push(Prisma.sql`${Prisma.raw(col('group_id'))} = ${groupId}`);
+      if (tokenId) c.push(Prisma.sql`${Prisma.raw(col('token_id'))} = ${tokenId}`);
       return c;
     };
 
-    const bucketExpr = bucketFn === 'hour'
-      ? Prisma.sql`date_trunc('hour', created_at)`
-      : Prisma.sql`date_trunc('day',  created_at)`;
+    const bucketExpr = (alias = '') => {
+      const col = alias ? `${alias}.created_at` : 'created_at';
+      return bucketFn === 'hour'
+        ? Prisma.sql`date_trunc('hour', ${Prisma.raw(col)})`
+        : Prisma.sql`date_trunc('day',  ${Prisma.raw(col)})`;
+    };
 
     // Helper to convert bigint → number
     const n = (v: bigint | number) => Number(v);
@@ -91,18 +95,18 @@ export const StatsService = {
       { time: Date; requests: bigint; errors: bigint; avg_latency: number }[]
     >`
       SELECT
-        ${bucketExpr}                                         AS time,
+        ${bucketExpr()}                                       AS time,
         COUNT(*)                                              AS requests,
         COUNT(CASE WHEN status >= 400 THEN 1 END)            AS errors,
         COALESCE(AVG(latency_ms)::float8, 0)                 AS avg_latency
       FROM request_logs
       ${where}
-      GROUP BY ${bucketExpr}
+      GROUP BY ${bucketExpr()}
       ORDER BY time ASC
     `;
 
     // ── byKey (only rows where key_id IS NOT NULL) ────────────────────────────
-    const keyConditions = [...baseConditions(), Prisma.sql`r.key_id IS NOT NULL`];
+    const keyConditions = [...baseConditions('r'), Prisma.sql`r.key_id IS NOT NULL`];
     const byKeyRows = await prisma.$queryRaw<
       { id: string; name: string; requests: bigint; errors: bigint; avg_latency: number }[]
     >`
@@ -121,7 +125,7 @@ export const StatsService = {
     `;
 
     // ── byGroup ───────────────────────────────────────────────────────────────
-    const groupConditions = [...baseConditions(), Prisma.sql`r.group_id IS NOT NULL`];
+    const groupConditions = [...baseConditions('r'), Prisma.sql`r.group_id IS NOT NULL`];
     const byGroupRows = await prisma.$queryRaw<
       { id: string; name: string; requests: bigint; errors: bigint; avg_latency: number }[]
     >`
@@ -144,7 +148,7 @@ export const StatsService = {
     `;
 
     // ── byToken ───────────────────────────────────────────────────────────────
-    const tokenConditions = [...baseConditions(), Prisma.sql`r.token_id IS NOT NULL`];
+    const tokenConditions = [...baseConditions('r'), Prisma.sql`r.token_id IS NOT NULL`];
     const byTokenRows = await prisma.$queryRaw<
       { id: string; name: string; requests: bigint; errors: bigint; avg_latency: number }[]
     >`
