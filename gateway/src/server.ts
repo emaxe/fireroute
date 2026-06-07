@@ -15,6 +15,7 @@ import { statsRoutes } from './routes/admin/stats.js';
 import { openaiRoutes } from './routes/proxy/openai.js';
 import { anthropicRoutes } from './routes/proxy/anthropic.js';
 import { responsesRoutes } from './routes/proxy/responses.js';
+import { wildcardRoutes } from './routes/proxy/wildcard.js';
 
 const server = Fastify({ logger: true });
 
@@ -35,6 +36,7 @@ await server.register(statsRoutes, { prefix: '/api/v1/admin/stats' });
 await server.register(openaiRoutes, { prefix: '/v1' });
 await server.register(anthropicRoutes, { prefix: '/v1' });
 await server.register(responsesRoutes, { prefix: '/v1' });
+await server.register(wildcardRoutes, { prefix: '/v1' });
 
 server.get('/health', async () => ({ status: 'ok' }));
 
