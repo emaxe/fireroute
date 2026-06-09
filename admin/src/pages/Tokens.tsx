@@ -29,6 +29,13 @@ const INPUT =
 const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]';
 const TD = 'px-4 py-3 text-sm';
 
+/**
+ * Pill-style multi-select for key groups.
+ *
+ * Renders each available group as a clickable pill. Selected pills are highlighted
+ * and show a checkmark. The parent receives the full array of selected group IDs
+ * on every change so the form can send the complete list to the backend.
+ */
 function MultiSelectGroups({
   groups,
   selected,
@@ -81,6 +88,16 @@ function MultiSelectGroups({
   );
 }
 
+/**
+ * Tokens page — CRUD UI for service tokens with many-to-many group bindings.
+ *
+ * Features:
+ *  - Generate new tokens with an optional name and selected key groups.
+ *  - Edit existing tokens (name + groups). The backend replaces the full group
+ *    list on every save, so the UI simply sends the current selection.
+ *  - Revoke / delete tokens.
+ *  - Newly generated tokens are shown once in a banner with a copy button.
+ */
 export default function Tokens() {
   const [tokens, setTokens]       = useState<ServiceToken[]>([]);
   const [groups, setGroups]       = useState<KeyGroup[]>([]);

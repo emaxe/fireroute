@@ -4,6 +4,11 @@ import { KeyManager } from '../../services/key-manager.js';
 import { StatsService } from '../../services/stats-service.js';
 import { config } from '../../config.js';
 
+/**
+ * Check whether the requested image model is a kontext workflow model.
+ * Kontext models use an async (submit → poll → download) workflow
+ * instead of the synchronous text_to_image endpoint.
+ */
 function isKontextModel(model: string): boolean {
   return model.toLowerCase().includes('kontext');
 }
@@ -12,6 +17,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * OpenAI-compatible routes (models, chat completions, image generations).
+ *
+ * Image generation is handled manually here instead of going through the generic
+ * handleProxy because Fireworks image APIs differ from the standard OpenAI shape:
+ *  - Size must be parsed into width/height and passed explicitly (except for kontext).
+ *  - Kontext models require an async workflow (submit → poll for result → download).
+ *  - Standard models use the sync /text_to_image endpoint and return raw binary.
+ *  - We support both JSON+b64 and raw image/* Accept headers.
+ */
 export async function openaiRoutes(server: FastifyInstance) {
   server.get('/models', { preHandler: server.verifyBearer }, async (request, reply) => {
     return handleProxy(request, reply, '/models');

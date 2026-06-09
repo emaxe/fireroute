@@ -2,6 +2,17 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * KeyManager — CRUD for API keys and key groups, plus round-robin selection.
+ *
+ * Each key can belong to many groups (GroupMember junction table). When a token
+ * is authenticated with a specific group, getNextKey() picks the next active key
+ * in that group using a modulo counter stored on the group itself (currentIndex).
+ * This is a simple, stateless round-robin that survives restarts.
+ *
+ * Deleting a key is blocked if it still belongs to any group to prevent accidental
+ * loss of routing capacity.
+ */
 export const KeyManager = {
   async listKeys() {
     return prisma.apiKey.findMany({

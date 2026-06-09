@@ -2,6 +2,20 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * StatsService — analytics aggregation layer.
+ *
+ * All data is fetched from the `request_logs` table using raw SQL queries
+ * because Prisma's aggregate API does not support grouping by arbitrary time
+ * buckets (hour/day) while also joining related tables for names.
+ *
+ * Key design choices:
+ *  - `baseConditions()` builds shared WHERE clauses (time range + optional filters)
+ *    so every analytic query uses the same filter logic.
+ *  - `bucketExpr()` generates `date_trunc` SQL for hour or day buckets.
+ *  - Bigint values from PostgreSQL COUNT/SUM are converted to JS numbers via `n()`.
+ *  - Image-generation analytics are filtered by `endpoint LIKE '%/image%'`.
+ */
 export const StatsService = {
   async log(data: {
     tokenId?: string;
@@ -116,7 +130,7 @@ export const StatsService = {
     // Helper to convert bigint → number
     const n = (v: bigint | number) => Number(v);
 
-    // ── Summary ──────────────────────────────────────────────────────────────────────────────
+    // ── Summary ───────────────────────────────────────────────────────────────────────────────────────────────
     const where = Prisma.join(baseConditions(), ' AND ', 'WHERE ', '');
 
     const [summaryRow] = await prisma.$queryRaw<

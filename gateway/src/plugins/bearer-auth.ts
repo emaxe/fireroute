@@ -3,6 +3,24 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * Bearer-token authentication plugin (registered as preHandler).
+ *
+ * Why preHandler instead of onRequest?
+ * - Fastify parses the JSON body in an earlier hook. By the time preHandler runs,
+ *   request.body is already available, so we can read the optional "group" field
+ *   that clients send to choose which key group to use.
+ *
+ * Group resolution logic:
+ * 1. Load the token together with its linked groups (many-to-many via token_groups).
+ * 2. Build the list of allowed group IDs from the junction table.
+ * 3. If the token is not restricted to any group, allow any group (or default).
+ * 4. If the client sent "group" in the body, resolve it by ID or name and verify
+ *    that the token is actually allowed to use that group.
+ * 5. If the client sent no group but the token is tied to exactly one group, use it
+ *    automatically so existing single-group workflows keep working without changes.
+ * 6. Otherwise reject with 400 asking the client to supply a group.
+ */
 export const bearerAuthPlugin = fp(async (server) => {
   server.decorate('verifyBearer', async (request, reply) => {
     const auth = request.headers.authorization;

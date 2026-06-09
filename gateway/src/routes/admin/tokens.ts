@@ -1,6 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { TokenManager } from '../../services/token-manager.js';
 
+/**
+ * Admin REST routes for managing service tokens.
+ * All endpoints require JWT authentication via `onRequest: server.authenticate`.
+ */
 export async function tokensRoutes(server: FastifyInstance) {
   server.get('/', { onRequest: server.authenticate }, async () => {
     return TokenManager.listTokens();

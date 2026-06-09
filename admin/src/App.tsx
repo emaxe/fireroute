@@ -116,6 +116,12 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Root application component.
+ *
+ * Layout wraps every authenticated page with a sticky header (desktop nav + mobile
+ * hamburger menu) and enforces a login redirect when the JWT token is missing.
+ */
 export default function App() {
   return (
     <BrowserRouter>

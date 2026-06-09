@@ -90,6 +90,10 @@ const C = {
 
 // ── Zero-fill utility ──────────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Ensure the timeseries array has a slot for every expected bucket (hour or day)
+ * so that Recharts draws a continuous line even when no requests were logged.
+ */
 function fillTimeseries(data: TimeseriesBucket[], range: Range): TimeseriesBucket[] {
   const now = new Date();
   const buckets: { key: string; time: string }[] = [];
@@ -127,6 +131,10 @@ function fmtTime(iso: string, range: Range): string {
   return iso.slice(5, 10); // MM-DD
 }
 
+/**
+ * Compact numeric formatter for chart axes and tooltips.
+ * Examples: 1500 → "1.5k", 2_300_000 → "2.3M".
+ */
 function fmtNum(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'k';
@@ -189,6 +197,17 @@ function CustomTooltip({ active, payload, label }: any) {
 
 // ── Main component ────────────────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Dashboard — analytics overview with live auto-refresh.
+ *
+ * Features:
+ *  - Time range selector (today → 90d) with hour or day bucketing.
+ *  - Dropdown filters by API key, key group, and service token.
+ *  - Auto-refresh every 5 s in the background (no full-page spinner).
+ *  - Zero-filled timeseries so charts never show gaps.
+ *  - Token consumption formatted as k/M for readability on axes and tooltips.
+ *  - Image generation metrics separated from text/LLM traffic.
+ */
 export default function Dashboard() {
   const [range, setRange]     = useState<Range>('7d');
   const [keyId, setKeyId]     = useState('');
@@ -240,7 +259,7 @@ export default function Dashboard() {
       .finally(() => { if (showLoading) setLoading(false); });
   }, [range, keyId, groupId, tokenId]);
 
-  // Fetch on filter change — debounce 300 ms
+  // Fetch on filter change — debounce 300 ms so rapid clicks don't spam the API
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchData(true), 300);
@@ -565,8 +584,13 @@ export default function Dashboard() {
   );
 }
 
-// ── Rich breakdown card with colored mini-bars ───────────────────────────────────────────────────────────────────────────────────────────
+// ── Rich breakdown card with colored mini-bars ──────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * BreakdownCard — shows a ranked list of keys/groups/tokens with a stacked
+ * mini-bar per row (prompt → completion → errors). The bar width is relative
+ * to the top item so the visual comparison is immediate.
+ */
 function BreakdownCard({ title, data }: { title: string; data: BreakdownItem[] }) {
   if (!data.length) {
     return (
@@ -635,8 +659,12 @@ function BreakdownCard({ title, data }: { title: string; data: BreakdownItem[] }
   );
 }
 
-// ── Endpoint table ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── Endpoint table ────────────────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * EndpointTable — ranked list of the most-hit API endpoints with a horizontal
+ * progress bar scaled to the top endpoint. Also shows token count per endpoint.
+ */
 function EndpointTable({ data }: { data: EndpointItem[] }) {
   if (!data.length) return <NoData />;
   const maxReq = Math.max(...data.map((d) => d.requests));

@@ -3,6 +3,13 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+/**
+ * TokenManager — CRUD for service tokens with many-to-many group bindings.
+ *
+ * The token ↔ group relation is stored in the junction table `token_groups`.
+ * When updating a token we first delete all existing links and recreate them
+ * so that the UI can simply send the full desired list of groupIds every time.
+ */
 export const TokenManager = {
   async listTokens() {
     return prisma.serviceToken.findMany({
