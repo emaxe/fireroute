@@ -31,6 +31,14 @@ export const KeyManager = {
     return prisma.apiKey.update({ where: { id }, data: { active } });
   },
 
+  async suspendKey(id: string) {
+    return prisma.apiKey.update({ where: { id }, data: { suspended: true } });
+  },
+
+  async unsuspendKey(id: string) {
+    return prisma.apiKey.update({ where: { id }, data: { suspended: false } });
+  },
+
   async listGroups() {
     return prisma.keyGroup.findMany({
       include: { members: { include: { key: true } } },
@@ -71,7 +79,7 @@ export const KeyManager = {
     }
     if (!group || group.members.length === 0) return null;
 
-    const activeMembers = group.members.filter((m) => m.key.active);
+    const activeMembers = group.members.filter((m) => m.key.active && !m.key.suspended);
     if (activeMembers.length === 0) return null;
 
     const idx = group.currentIndex % activeMembers.length;

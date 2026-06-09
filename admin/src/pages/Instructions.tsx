@@ -1,7 +1,34 @@
+import { useState, useEffect } from 'react';
 import CopyButton from '../components/CopyButton';
+import API from '../api/client';
 
-const gatewayUrl =
-  (import.meta as any).env?.VITE_API_URL?.replace('/api/v1/admin', '') || 'http://localhost:3000';
+interface Config {
+  gatewayPublicUrl: string;
+}
+
+function usePublicUrl() {
+  const [url, setUrl] = useState<string>(
+    (import.meta as any).env?.VITE_API_URL?.replace('/api/v1/admin', '') || ''
+  );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    API.get('/config')
+      .then((res) => {
+        const cfg: Config = res.data;
+        const origin = window.location.origin;
+        const publicUrl = cfg.gatewayPublicUrl || (origin.includes(':9701') ? origin.replace(':9701', ':9700') : origin);
+        setUrl(publicUrl);
+      })
+      .catch(() => {
+        const origin = window.location.origin;
+        setUrl(origin.includes(':9701') ? origin.replace(':9701', ':9700') : origin);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { url, loading };
+}
 
 function CodeBlock({ title, code }: { title?: string; code: string }) {
   return (
@@ -45,6 +72,8 @@ function MethodBadge({ method }: { method: string }) {
 }
 
 export default function Instructions() {
+  const { url: gatewayUrl, loading: urlLoading } = usePublicUrl();
+
   const endpoints = [
     {
       method: 'POST',
@@ -75,18 +104,30 @@ export default function Instructions() {
     },
   ];
 
+  const imageCurl = `curl -X POST ${gatewayUrl}/v1/images/generations \\
+  -H "Authorization: Bearer <token>" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -d '{"model":"accounts/fireworks/models/flux-1-schnell-fp8","prompt":"A futuristic city at sunset","size":"1024x1024","n":1}'`;
+
   return (
     <div className="max-w-3xl">
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">API Instructions</h1>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">API Instructions</h1>
         <p className="text-sm text-[#6B6B6B] mt-1">How to use the FireRoute gateway from your applications</p>
       </div>
 
       <Section title="Base URL">
         <p className="text-sm text-[#6B6B6B] mb-3">All proxy requests go to:</p>
-        <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6366F1] px-3 py-1.5 rounded-[6px] text-sm font-mono">
-          {gatewayUrl}
-        </code>
+        {urlLoading ? (
+          <div className="bg-[#FAFAFA] border border-[#E8E8EC] px-3 py-1.5 rounded-[6px] text-sm font-mono text-[#9C9C9C] inline-block">
+            Loading...
+          </div>
+        ) : (
+          <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6366F1] px-3 py-1.5 rounded-[6px] text-sm font-mono">
+            {gatewayUrl}
+          </code>
+        )}
       </Section>
 
       <Section title="Authentication">
@@ -102,7 +143,7 @@ export default function Instructions() {
         <div className="space-y-8">
           {endpoints.map(({ method, path, label, curl }) => (
             <div key={path}>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <MethodBadge method={method} />
                 <code className="text-sm font-mono text-[#6B6B6B]">{gatewayUrl}{path}</code>
               </div>
@@ -113,13 +154,36 @@ export default function Instructions() {
         </div>
       </Section>
 
+      <Section title="Image Generation">
+        <p className="text-sm text-[#6B6B6B] mb-4">
+          Generate images via the OpenAI-compatible <InlineCode>/v1/images/generations</InlineCode> endpoint.
+          Models prefixed with <InlineCode>flux</InlineCode> or <InlineCode>kontext</InlineCode> are supported.
+          Pass <InlineCode>size</InlineCode> as <InlineCode>width×height</InlineCode> (e.g. <InlineCode>1024x1024</InlineCode>).
+          The gateway returns a JSON payload with a Base64-encoded image by default; set <InlineCode>Accept: image/*</InlineCode> to receive raw binary.
+        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+          <MethodBadge method="POST" />
+          <code className="text-sm font-mono text-[#6B6B6B]">{gatewayUrl}/v1/images/generations</code>
+        </div>
+        <p className="text-xs text-[#9C9C9C] mb-3">OpenAI-compatible image generation</p>
+        <CodeBlock title="cURL" code={imageCurl} />
+        <CodeBlock title="Body fields" code={`{
+  "model": "accounts/fireworks/models/flux-1-schnell-fp8",
+  "prompt": "A futuristic city at sunset",
+  "size": "1024x1024",   // optional, default 1024x1024
+  "n": 1                  // number of images (currently 1)
+}`} />
+      </Section>
+
       <Section title="Key Groups">
         <p className="text-sm text-[#6B6B6B] mb-4">
-          By default requests use the <InlineCode>default</InlineCode> group.
-          Pass <InlineCode>group</InlineCode> in the request body to target a specific group.
-          Load is distributed round-robin across all active keys in the chosen group.
+          Tokens can be bound to one or more key groups. If a token is bound to a single group,
+          requests automatically use that group. If a token is bound to multiple groups, you must pass{' '}
+          <InlineCode>group</InlineCode> in the request body to specify which one to use. Tokens with no group
+          bindings fall back to the <InlineCode>default</InlineCode> group.
         </p>
-        <CodeBlock title="Body" code={'{"group":"my-group-name","model":"...","messages":[...]}'} />
+        <CodeBlock title="Single group (auto)" code={'{"model":"...","messages":[...]}'} />
+        <CodeBlock title="Multiple groups (explicit)" code={'{"group":"my-group-name","model":"...","messages":[...]}'} />
       </Section>
     </div>
   );

@@ -19,6 +19,8 @@ const schema = z.object({
   GATEWAY_PORT: z.string().transform(Number).default('3000'),
   // Base URL for the upstream Fireworks AI inference API
   FIREWORKS_BASE_URL: z.string().default('https://api.fireworks.ai/inference/v1'),
+  // Public URL exposed to API consumers (shown in admin instructions)
+  GATEWAY_PUBLIC_URL: z.string().optional(),
 });
 
 // Exports a frozen, validated config object. Import this instead of reading process.env directly.

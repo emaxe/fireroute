@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -7,31 +8,31 @@ import Users from './pages/Users';
 import Logs from './pages/Logs';
 import Instructions from './pages/Instructions';
 import Tokens from './pages/Tokens';
+import Settings from './pages/Settings';
+import Playground from './pages/Playground';
 
-// Navigation links rendered in the top header; kept in one place so the order is explicit
+// Navigation links
 const NAV = [
   { to: '/',            label: 'Dashboard' },
+  { to: '/playground',  label: 'Playground' },
   { to: '/keys',        label: 'Keys' },
   { to: '/groups',      label: 'Groups' },
   { to: '/users',       label: 'Users' },
   { to: '/tokens',      label: 'Tokens' },
   { to: '/logs',        label: 'Logs' },
   { to: '/instructions',label: 'Instructions' },
+  { to: '/settings',    label: 'Settings' },
 ];
 
-/**
- * Shared layout wrapper that enforces JWT authentication.
- * If no token is found in localStorage, every route except /login redirects to the login page.
- * The sticky header with the nav bar is only shown when the user is authenticated.
- */
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const token = localStorage.getItem('token');
+  const [menuOpen, setMenuOpen] = useState(false);
+
   if (!token && location.pathname !== '/login') return <Navigate to="/login" />;
 
-  // Tailwind class helper: active page gets indigo text/background, inactive gets muted hover state
   const linkCls = (path: string) =>
-    `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+    `px-3 py-2 rounded-md text-sm font-medium transition-colors block ${
       location.pathname === path
         ? 'text-[#6366F1] bg-indigo-50'
         : 'text-[#6B6B6B] hover:text-[#0A0A0A] hover:bg-gray-50'
@@ -41,9 +42,10 @@ function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#FAFAFA]">
       {token && (
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#E8E8EC]">
-          <div className="max-w-[1280px] mx-auto px-6 h-14 flex items-center gap-6">
+          <div className="max-w-[1280px] mx-auto px-4 md:px-6 h-14 flex items-center gap-4">
+            {/* Logo */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="font-display font-semibold text-[#0A0A0A] tracking-tight">
+              <span className="font-display font-semibold text-[#0A0A0A] tracking-tight text-base md:text-lg">
                 FireRoute
               </span>
               <span className="text-[10px] font-medium bg-[#6366F1] text-white px-1.5 py-0.5 rounded-[4px] uppercase tracking-wider leading-none">
@@ -51,27 +53,65 @@ function Layout({ children }: { children: React.ReactNode }) {
               </span>
             </div>
 
-            <nav className="flex items-center gap-1 flex-1">
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-1 flex-1">
               {NAV.map(({ to, label }) => (
                 <Link key={to} to={to} className={linkCls(to)}>{label}</Link>
               ))}
             </nav>
 
-            {/**
-             * Logout wipes the token and forces a full page reload.
-             * Using window.location.href instead of client-side navigation ensures
-             * all React state is cleared and the auth guard re-runs immediately.
-             */}
+            {/* Mobile: hamburger + logout */}
+            <div className="flex md:hidden items-center gap-2 ml-auto">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 rounded-md text-[#6B6B6B] hover:bg-gray-50 transition-colors"
+                aria-label="Menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  {menuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop logout */}
             <button
               onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
-              className="shrink-0 text-sm font-medium text-[#EF4444] border border-[#EF4444]/50 px-3 py-1.5 rounded-[6px] hover:bg-red-50 hover:border-[#EF4444] transition-colors"
+              className="hidden md:block shrink-0 text-sm font-medium text-[#EF4444] border border-[#EF4444]/50 px-3 py-1.5 rounded-[6px] hover:bg-red-50 hover:border-[#EF4444] transition-colors"
             >
               Logout
             </button>
           </div>
+
+          {/* Mobile dropdown menu */}
+          {menuOpen && (
+            <div className="md:hidden border-t border-[#E8E8EC] bg-white px-4 py-3 space-y-1 shadow-lg">
+              {NAV.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={() => setMenuOpen(false)}
+                  className={linkCls(to)}
+                >
+                  {label}
+                </Link>
+              ))}
+              <div className="pt-2 border-t border-[#E8E8EC] mt-2">
+                <button
+                  onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
+                  className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-[#EF4444] hover:bg-red-50 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
         </header>
       )}
-      <main className="max-w-[1280px] mx-auto px-6 py-8">{children}</main>
+      <main className="max-w-[1280px] mx-auto px-4 md:px-6 py-4 md:py-8">{children}</main>
     </div>
   );
 }
@@ -83,12 +123,14 @@ export default function App() {
         <Routes>
           <Route path="/login"        element={<Login />} />
           <Route path="/"             element={<Dashboard />} />
+          <Route path="/playground"   element={<Playground />} />
           <Route path="/keys"         element={<Keys />} />
           <Route path="/groups"       element={<Groups />} />
           <Route path="/users"        element={<Users />} />
           <Route path="/logs"         element={<Logs />} />
           <Route path="/tokens"       element={<Tokens />} />
           <Route path="/instructions" element={<Instructions />} />
+          <Route path="/settings"     element={<Settings />} />
         </Routes>
       </Layout>
     </BrowserRouter>

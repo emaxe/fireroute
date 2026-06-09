@@ -38,14 +38,14 @@ export default function Users() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">Service Users</h1>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Service Users</h1>
         <p className="text-sm text-[#6B6B6B] mt-1">Users who can authenticate to the gateway API</p>
       </div>
 
       {/* Add form */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5">
         <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Add User</p>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             type="email"
             value={email}
@@ -58,12 +58,6 @@ export default function Users() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
-            className={`${INPUT} w-44`}
-          />
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Display name (optional)"
             className={`${INPUT} flex-1`}
           />
           <button
@@ -78,7 +72,8 @@ export default function Users() {
 
       {/* Table */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
             <tr>
               <th className={TH}>Email</th>
@@ -122,6 +117,7 @@ export default function Users() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

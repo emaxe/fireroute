@@ -62,11 +62,11 @@ export default function Groups() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">Key Groups</h1>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Key Groups</h1>
         <p className="text-sm text-[#6B6B6B] mt-1">Organise keys into groups for round-robin load balancing</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
         {/* Create group */}
         <div className="bg-white border border-[#E8E8EC] rounded-xl p-5">
           <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Create Group</p>
@@ -102,7 +102,8 @@ export default function Groups() {
 
       {/* Table */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
             <tr>
               <th className={TH}>Group</th>
@@ -157,6 +158,7 @@ export default function Groups() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

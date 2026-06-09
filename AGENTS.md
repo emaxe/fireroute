@@ -193,6 +193,7 @@ Copy `.env.example` → `.env` and adjust:
 - Gateway image runs `prisma migrate deploy` + `db:seed` on startup.
 - Admin is built as static files and served by nginx (`nginx:alpine`).
 - `docker-compose.yml` includes a healthcheck for postgres before gateway starts.
+- **Critical:** Gateway Dockerfile must install `openssl` (`RUN apk add --no-cache openssl`) because `node:20-alpine` ships only `libssl3` without the CLI package. Prisma 5.22's schema engine cannot auto-detect OpenSSL 3 without it, and falls back to a non-existent `libssl.so.1.1`, causing a crash loop on `prisma migrate deploy`. Also ensure `npm run build` (tsc) runs during the Docker build so `dist/server.js` exists for the startup CMD.
 
 ---
 
@@ -229,3 +230,4 @@ After completing **any** task — whether a bug fix, feature addition, refactor,
 - **Binary passthrough**: The gateway detects binary responses (`image/*`, `audio/*`, `video/*`, `application/octet-stream`) and forwards them as `Buffer`. Do not try to `JSON.parse` these.
 - **SSE streaming**: Event-stream responses are piped directly to `reply.raw`. Do not wrap them in a Fastify reply object.
 - **LocalStorage auth**: The admin panel stores the JWT in `localStorage.getItem('token')`. Any auth-related changes must update both the login page and the axios interceptor (if present).
+- **Token-to-group binding**: `ServiceToken` now has a `groupId` foreign key to `KeyGroup`. The proxy routes read `request.groupId` (set by `bearer-auth.ts` from the token record) and pass it to `KeyManager.getNextKey()`. The previous `body.group` fallback was removed to preserve OpenAI SDK compatibility — clients must NOT pass custom fields in the request body. Admin UI allows selecting a group when creating a token; if a token has no group, the proxy falls back to `'default'` (which may return 503 if that group does not exist).

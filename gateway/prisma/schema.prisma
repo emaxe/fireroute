@@ -1,10 +1,22 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model BlockedEndpoint {
+  id        String   @id @default(uuid())
+  pattern   String   @unique
+  message   String   @default("Endpoint not supported")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("blocked_endpoints")
 }
 
 model User {
@@ -27,7 +39,8 @@ model ServiceToken {
   createdAt DateTime @default(now()) @map("created_at")
   expiresAt DateTime? @map("expires_at")
 
-  logs RequestLog[]
+  groups TokenGroup[]
+  logs   RequestLog[]
 
   @@map("service_tokens")
 }
@@ -37,6 +50,7 @@ model ApiKey {
   name      String
   key       String
   active    Boolean  @default(true)
+  suspended Boolean  @default(false)
   lastUsed  DateTime? @map("last_used")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -56,6 +70,7 @@ model KeyGroup {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   members      GroupMember[]
+  tokenGroups  TokenGroup[]
   currentIndex Int           @default(0) @map("current_index")
 
   @@map("key_groups")
@@ -73,6 +88,18 @@ model GroupMember {
   @@map("group_members")
 }
 
+model TokenGroup {
+  id      String @id @default(uuid())
+  tokenId String @map("token_id")
+  groupId String @map("group_id")
+
+  token ServiceToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  group KeyGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, groupId])
+  @@map("token_groups")
+}
+
 model RequestLog {
   id        String   @id @default(uuid())
   tokenId   String?  @map("token_id")
@@ -81,6 +108,9 @@ model RequestLog {
   endpoint  String
   status    Int
   latencyMs Int      @map("latency_ms")
+  promptTokens     Int? @map("prompt_tokens")
+  completionTokens Int? @map("completion_tokens")
+  totalTokens      Int? @map("total_tokens")
   error     String?
   createdAt DateTime @default(now()) @map("created_at")
 

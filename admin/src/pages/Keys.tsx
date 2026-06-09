@@ -6,6 +6,7 @@ interface ApiKey {
   name: string;
   key: string;
   active: boolean;
+  suspended?: boolean;
   createdAt: string;
 }
 
@@ -52,7 +53,7 @@ export default function Keys() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">API Keys</h1>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">API Keys</h1>
         <p className="text-sm text-[#6B6B6B] mt-1">Manage Fireworks API keys used by the gateway</p>
       </div>
 
@@ -65,12 +66,12 @@ export default function Keys() {
       {/* Add form */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5">
         <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Add Key</p>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className={`${INPUT} w-44`}
+            className={`${INPUT} w-full sm:w-44`}
           />
           <input
             value={key}
@@ -90,7 +91,8 @@ export default function Keys() {
 
       {/* Table */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
             <tr>
               <th className={TH}>Name</th>
@@ -113,12 +115,24 @@ export default function Keys() {
                 <td className={`${TD} font-medium text-[#0A0A0A]`}>{k.name}</td>
                 <td className={`${TD} font-mono text-[#6B6B6B]`}>{k.key.slice(0, 8)}…{k.key.slice(-4)}</td>
                 <td className={TD}>
-                  <button onClick={() => toggle(k.id, k.active)} className="transition-opacity hover:opacity-70">
-                    {k.active
-                      ? <span className="bg-[#DCFCE7] text-[#10B981] px-2.5 py-0.5 rounded-full text-xs font-medium">Active</span>
-                      : <span className="bg-gray-100 text-[#9C9C9C] px-2.5 py-0.5 rounded-full text-xs font-medium">Inactive</span>
-                    }
-                  </button>
+                  {k.suspended ? (
+                    <div className="flex items-center gap-2">
+                      <span className="bg-[#FEF2F2] text-[#EF4444] px-2.5 py-0.5 rounded-full text-xs font-medium">Suspended</span>
+                      <button
+                        onClick={() => API.patch(`/keys/${k.id}/unsuspend`).then(load)}
+                        className="text-xs text-[#6366F1] hover:text-[#4F46E5] font-medium transition-colors"
+                      >
+                        Activate
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => toggle(k.id, k.active)} className="transition-opacity hover:opacity-70">
+                      {k.active
+                        ? <span className="bg-[#DCFCE7] text-[#10B981] px-2.5 py-0.5 rounded-full text-xs font-medium">Active</span>
+                        : <span className="bg-gray-100 text-[#9C9C9C] px-2.5 py-0.5 rounded-full text-xs font-medium">Inactive</span>
+                      }
+                    </button>
+                  )}
                 </td>
                 <td className={`${TD} text-[#9C9C9C]`}>{new Date(k.createdAt).toLocaleDateString()}</td>
                 <td className={`${TD} text-right`}>
@@ -133,6 +147,7 @@ export default function Keys() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

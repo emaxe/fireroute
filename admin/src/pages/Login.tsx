@@ -28,8 +28,8 @@ export default function Login() {
     'focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4 py-8 md:py-12">
+      <div className="w-full max-w-sm bg-white border border-[#E8E8EC] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] px-4 md:px-8 py-8 md:py-10">
 
         {/* Logo */}
         <div className="text-center mb-8">

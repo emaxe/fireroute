@@ -6,14 +6,56 @@ const prisma = new PrismaClient();
 export const TokenManager = {
   async listTokens() {
     return prisma.serviceToken.findMany({
+      include: {
+        groups: {
+          include: {
+            group: { select: { id: true, name: true } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   },
 
-  async createToken(name?: string) {
+  async createToken(data: { name?: string; groupIds?: string[] }) {
     const token = crypto.randomBytes(32).toString('hex');
+    const groupIds = data.groupIds?.filter(Boolean) ?? [];
     return prisma.serviceToken.create({
-      data: { token, name: name || 'default', active: true },
+      data: {
+        token,
+        name: data.name || 'default',
+        active: true,
+        groups: groupIds.length > 0
+          ? { create: groupIds.map((id) => ({ group: { connect: { id } } })) }
+          : undefined,
+      },
+      include: {
+        groups: {
+          include: { group: { select: { id: true, name: true } } },
+        },
+      },
+    });
+  },
+
+  async updateToken(id: string, data: { name?: string; groupIds?: string[] }) {
+    const groupIds = data.groupIds?.filter(Boolean) ?? [];
+
+    // Remove existing links, then recreate
+    await prisma.tokenGroup.deleteMany({ where: { tokenId: id } });
+
+    return prisma.serviceToken.update({
+      where: { id },
+      data: {
+        name: data.name,
+        groups: groupIds.length > 0
+          ? { create: groupIds.map((gid) => ({ group: { connect: { id: gid } } })) }
+          : undefined,
+      },
+      include: {
+        groups: {
+          include: { group: { select: { id: true, name: true } } },
+        },
+      },
     });
   },
 
@@ -31,6 +73,11 @@ export const TokenManager = {
   async findByToken(token: string) {
     return prisma.serviceToken.findUnique({
       where: { token },
+      include: {
+        groups: {
+          include: { group: { select: { id: true, name: true } } },
+        },
+      },
     });
   },
 };

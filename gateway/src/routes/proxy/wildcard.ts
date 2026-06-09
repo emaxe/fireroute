@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { handleProxy } from './utils.js';
+import { BlockedEndpointService } from '../../services/blocked-endpoints-service.js';
 
 /**
  * Catch-all proxy route that forwards any unmatched /v1/* request to Fireworks AI.
@@ -9,7 +10,7 @@ import { handleProxy } from './utils.js';
 export async function wildcardRoutes(server: FastifyInstance) {
   server.all<{ Params: { '*': string } }>(
     '/*',
-    { onRequest: server.verifyBearer },
+    { preHandler: server.verifyBearer },
     async (request, reply) => {
       // Rebuild endpoint: leading slash + wildcard capture (no prefix, no query)
       const path = '/' + request.params['*'];
@@ -18,11 +19,21 @@ export async function wildcardRoutes(server: FastifyInstance) {
       const qIdx = request.url.indexOf('?');
       const endpoint = qIdx >= 0 ? path + request.url.slice(qIdx) : path;
 
-      // Honour optional group field in JSON body (same pattern as openaiRoutes)
-      const body = request.body as { group?: string } | null;
-      const groupId = body?.group || 'default';
+      // Check if this endpoint is blocked in settings
+      // Use full URL path including prefix so patterns match exactly what clients request
+      const fullPath = request.url.split('?')[0];
+      const blocked = await BlockedEndpointService.findByPattern(fullPath);
+      if (blocked) {
+        return reply.status(404).send({
+          error: {
+            message: blocked.message,
+            type: 'error',
+            code: 'NOT_FOUND',
+          },
+        });
+      }
 
-      return handleProxy(request, reply, endpoint, groupId);
+      return handleProxy(request, reply, endpoint);
     }
   );
 }

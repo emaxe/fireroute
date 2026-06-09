@@ -2,9 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { handleProxy } from './utils.js';
 
 export async function anthropicRoutes(server: FastifyInstance) {
-  server.post('/messages', { onRequest: server.verifyBearer }, async (request, reply) => {
-    const body = request.body as { group?: string };
-    const groupId = body.group || 'default';
-    return handleProxy(request, reply, '/messages', groupId);
+  server.post('/messages', { preHandler: server.verifyBearer }, async (request, reply) => {
+    return handleProxy(request, reply, '/messages');
   });
 }

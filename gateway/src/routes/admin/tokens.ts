@@ -7,8 +7,14 @@ export async function tokensRoutes(server: FastifyInstance) {
   });
 
   server.post('/', { onRequest: server.authenticate }, async (request, reply) => {
-    const { name } = request.body as { name?: string };
-    return TokenManager.createToken(name);
+    const { name, groupIds } = request.body as { name?: string; groupIds?: string[] };
+    return TokenManager.createToken({ name, groupIds });
+  });
+
+  server.patch('/:id', { onRequest: server.authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { name, groupIds } = request.body as { name?: string; groupIds?: string[] };
+    return TokenManager.updateToken(id, { name, groupIds });
   });
 
   server.patch('/:id/revoke', { onRequest: server.authenticate }, async (request, reply) => {

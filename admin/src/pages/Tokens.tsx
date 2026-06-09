@@ -2,12 +2,24 @@ import { useEffect, useState } from 'react';
 import API from '../api/client';
 import CopyButton from '../components/CopyButton';
 
+interface KeyGroup {
+  id: string;
+  name: string;
+}
+
+interface TokenGroupLink {
+  id: string;
+  groupId: string;
+  group: { id: string; name: string };
+}
+
 interface ServiceToken {
   id: string;
   token: string;
   name?: string;
   active: boolean;
   createdAt: string;
+  groups: TokenGroupLink[];
 }
 
 const INPUT =
@@ -17,20 +29,96 @@ const INPUT =
 const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]';
 const TD = 'px-4 py-3 text-sm';
 
+function MultiSelectGroups({
+  groups,
+  selected,
+  onChange,
+  label,
+}: {
+  groups: KeyGroup[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  label: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {groups.map((g) => {
+          const checked = selected.includes(g.id);
+          return (
+            <label
+              key={g.id}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium cursor-pointer transition-colors select-none border ${
+                checked
+                  ? 'bg-[#6366F1]/10 border-[#6366F1] text-[#6366F1]'
+                  : 'bg-white border-[#E8E8EC] text-[#6B6B6B] hover:border-[#9C9C9C]'
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={checked}
+                onChange={() => {
+                  if (checked) onChange(selected.filter((id) => id !== g.id));
+                  else onChange([...selected, g.id]);
+                }}
+              />
+              {checked && (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+              {g.name}
+            </label>
+          );
+        })}
+      </div>
+      {selected.length === 0 && (
+        <p className="text-xs text-[#9C9C9C]">No groups selected — token will use the default group.</p>
+      )}
+    </div>
+  );
+}
+
 export default function Tokens() {
   const [tokens, setTokens]       = useState<ServiceToken[]>([]);
+  const [groups, setGroups]       = useState<KeyGroup[]>([]);
   const [tokenName, setTokenName] = useState('');
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [newToken, setNewToken]   = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [editToken, setEditToken] = useState<ServiceToken | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGroupIds, setEditGroupIds] = useState<string[]>([]);
 
-  const load = () => API.get('/tokens').then((res) => setTokens(res.data));
+  const load = () => {
+    API.get('/tokens').then((res) => setTokens(res.data));
+    API.get('/groups').then((res) => setGroups(res.data));
+  };
   useEffect(() => { load(); }, []);
 
   const create = async () => {
-    const res = await API.post('/tokens', { name: tokenName || 'default' });
+    const res = await API.post('/tokens', {
+      name: tokenName || 'default',
+      groupIds: selectedGroupIds.length > 0 ? selectedGroupIds : undefined,
+    });
     setNewToken(res.data.token);
     setTokenName('');
+    setSelectedGroupIds([]);
     setShowCreate(false);
+    load();
+  };
+
+  const saveEdit = async () => {
+    if (!editToken) return;
+    await API.patch(`/tokens/${editToken.id}`, {
+      name: editName,
+      groupIds: editGroupIds.length > 0 ? editGroupIds : undefined,
+    });
+    setEditToken(null);
+    setEditName('');
+    setEditGroupIds([]);
     load();
   };
 
@@ -44,12 +132,18 @@ export default function Tokens() {
     load();
   };
 
+  const openEdit = (t: ServiceToken) => {
+    setEditToken(t);
+    setEditName(t.name || '');
+    setEditGroupIds(t.groups.map((g) => g.groupId));
+  };
+
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display font-semibold text-[28px] text-[#0A0A0A] tracking-tight">Service Tokens</h1>
-          <p className="text-sm text-[#6B6B6B] mt-1">Bearer tokens for authenticating API requests</p>
+          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Service Tokens</h1>
+          <p className="text-sm text-[#6B6B6B] mt-1">Bearer tokens for authenticating API requests. Each token can be bound to multiple key groups.</p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
@@ -86,18 +180,24 @@ export default function Tokens() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5">
+        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5 space-y-4">
           <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Generate Token</p>
-          <div className="flex gap-3">
-            <input
-              value={tokenName}
-              onChange={(e) => setTokenName(e.target.value)}
-              placeholder="Token name (e.g. production, dev)"
-              className={`${INPUT} flex-1`}
-            />
+          <input
+            value={tokenName}
+            onChange={(e) => setTokenName(e.target.value)}
+            placeholder="Token name (e.g. production, dev)"
+            className={INPUT}
+          />
+          <MultiSelectGroups
+            groups={groups}
+            selected={selectedGroupIds}
+            onChange={setSelectedGroupIds}
+            label="Key Groups"
+          />
+          <div className="flex justify-end">
             <button
               onClick={create}
-              className="shrink-0 bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-2.5 rounded-[6px] text-sm font-medium
+              className="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-2.5 rounded-[6px] text-sm font-medium
                          transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(99,102,241,0.35)]"
             >
               Generate
@@ -106,13 +206,49 @@ export default function Tokens() {
         </div>
       )}
 
+      {/* Edit modal / inline */}
+      {editToken && (
+        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5 space-y-4">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Edit Token</p>
+          <input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            placeholder="Token name"
+            className={INPUT}
+          />
+          <MultiSelectGroups
+            groups={groups}
+            selected={editGroupIds}
+            onChange={setEditGroupIds}
+            label="Key Groups"
+          />
+          <div className="flex items-center justify-end gap-3">
+            <button
+              onClick={() => setEditToken(null)}
+              className="px-4 py-2.5 rounded-[6px] text-sm font-medium border border-[#E8E8EC] text-[#6B6B6B] hover:bg-[#FAFAFA] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveEdit}
+              className="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-2.5 rounded-[6px] text-sm font-medium
+                         transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(99,102,241,0.35)]"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px]">
           <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
             <tr>
               <th className={TH}>Token</th>
               <th className={TH}>Name</th>
+              <th className={TH}>Groups</th>
               <th className={TH}>Status</th>
               <th className={TH}>Created</th>
               <th className={`${TH} text-right`}>Actions</th>
@@ -121,7 +257,7 @@ export default function Tokens() {
           <tbody className="divide-y divide-[#E8E8EC]">
             {tokens.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-[#9C9C9C]">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#9C9C9C]">
                   No tokens yet. Generate one above.
                 </td>
               </tr>
@@ -129,12 +265,25 @@ export default function Tokens() {
             {tokens.map((t) => (
               <tr key={t.id} className="hover:bg-[#FAFAFA] transition-colors">
                 <td className={TD}>
-                  <div className="relative pr-16 w-52">
-                    <span className="text-sm font-mono text-[#6B6B6B]">{t.token.slice(0, 16)}…</span>
-                    <CopyButton text={t.token} variant="light" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono text-[#6B6B6B] truncate">{t.token.slice(0, 16)}…</span>
+                    <CopyButton text={t.token} variant="light" inline />
                   </div>
                 </td>
                 <td className={`${TD} text-[#6B6B6B]`}>{t.name || <span className="text-[#9C9C9C]">—</span>}</td>
+                <td className={TD}>
+                  <div className="flex flex-wrap gap-1.5">
+                    {t.groups.length === 0 ? (
+                      <span className="text-xs text-[#9C9C9C]">default</span>
+                    ) : (
+                      t.groups.map((tg) => (
+                        <span key={tg.id} className="bg-[#F3F4F6] text-[#6B6B6B] px-2 py-0.5 rounded-[4px] text-xs font-medium">
+                          {tg.group.name}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </td>
                 <td className={TD}>
                   {t.active
                     ? <span className="bg-[#DCFCE7] text-[#10B981] px-2.5 py-0.5 rounded-full text-xs font-medium">Active</span>
@@ -144,6 +293,12 @@ export default function Tokens() {
                 <td className={`${TD} text-[#9C9C9C]`}>{new Date(t.createdAt).toLocaleDateString()}</td>
                 <td className={`${TD} text-right`}>
                   <div className="flex items-center justify-end gap-4">
+                    <button
+                      onClick={() => openEdit(t)}
+                      className="text-sm font-medium text-[#6366F1] hover:text-[#4F46E5] transition-colors"
+                    >
+                      Edit
+                    </button>
                     {t.active && (
                       <button
                         onClick={() => revoke(t.id)}
@@ -164,6 +319,7 @@ export default function Tokens() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

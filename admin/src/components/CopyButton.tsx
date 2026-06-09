@@ -3,9 +3,10 @@ import { useState } from 'react';
 interface CopyButtonProps {
   text: string;
   variant?: 'dark' | 'light';
+  inline?: boolean;
 }
 
-export default function CopyButton({ text, variant = 'dark' }: CopyButtonProps) {
+export default function CopyButton({ text, variant = 'dark', inline }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -27,7 +28,7 @@ export default function CopyButton({ text, variant = 'dark' }: CopyButtonProps) 
   return (
     <button
       onClick={handleCopy}
-      className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-[4px] transition-all ${cls}`}
+      className={`${inline ? 'relative' : 'absolute top-2 right-2'} px-2 py-1 text-xs font-medium rounded-[4px] transition-all ${cls}`}
     >
       {copied ? 'Copied!' : 'Copy'}
     </button>

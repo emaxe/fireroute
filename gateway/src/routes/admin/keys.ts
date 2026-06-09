@@ -32,4 +32,9 @@ export async function keysRoutes(server: FastifyInstance) {
     const { active } = request.body as { active: boolean };
     return KeyManager.toggleKey(id, active);
   });
+
+  server.patch('/:id/unsuspend', { onRequest: server.authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    return KeyManager.unsuspendKey(id);
+  });
 }
