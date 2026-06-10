@@ -5,7 +5,7 @@ export const jwtAuthPlugin = fp(async (server) => {
     try {
       await request.jwtVerify();
       const payload = request.user;
-      if (payload.role !== 'admin') {
+      if (payload.role !== 'admin' && payload.role !== 'superadmin') {
         reply.status(403).send({ error: 'Forbidden' });
       }
     } catch {

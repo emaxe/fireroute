@@ -27,7 +27,7 @@ interface LogsResponse {
   offset: number;
 }
 
-interface DropdownOption { id: string; name: string }
+interface DropdownOption { id: string; name: string; token?: string }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ export default function Logs() {
             </select>
             <select value={tokenId} onChange={(e) => changeFilter(setTokenId)(e.target.value)} disabled={dropLoading} className={SELECT}>
               <option value="">All Tokens</option>
-              {tokens.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {tokens.map((t) => <option key={t.id} value={t.token}>{t.name}</option>)}
             </select>
           </div>
           <div className="flex flex-wrap items-center gap-3">

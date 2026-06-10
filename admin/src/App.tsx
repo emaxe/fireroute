@@ -10,6 +10,7 @@ import Instructions from './pages/Instructions';
 import Tokens from './pages/Tokens';
 import Settings from './pages/Settings';
 import Playground from './pages/Playground';
+import Models from './pages/Models';
 
 // Navigation links
 const NAV = [
@@ -17,6 +18,7 @@ const NAV = [
   { to: '/playground',  label: 'Playground' },
   { to: '/keys',        label: 'Keys' },
   { to: '/groups',      label: 'Groups' },
+  { to: '/models',      label: 'Models' },
   { to: '/users',       label: 'Users' },
   { to: '/tokens',      label: 'Tokens' },
   { to: '/logs',        label: 'Logs' },
@@ -137,6 +139,7 @@ export default function App() {
           <Route path="/tokens"       element={<Tokens />} />
           <Route path="/instructions" element={<Instructions />} />
           <Route path="/settings"     element={<Settings />} />
+          <Route path="/models"       element={<Models />} />
         </Routes>
       </Layout>
     </BrowserRouter>

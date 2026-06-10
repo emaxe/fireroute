@@ -19,6 +19,7 @@ import { openaiRoutes } from './routes/proxy/openai.js';
 import { anthropicRoutes } from './routes/proxy/anthropic.js';
 import { responsesRoutes } from './routes/proxy/responses.js';
 import { wildcardRoutes } from './routes/proxy/wildcard.js';
+import { modelsRoutes } from './routes/admin/models.js';
 
 const server = Fastify({ logger: true });
 
@@ -40,6 +41,7 @@ await server.register(tokensRoutes, { prefix: '/api/v1/admin/tokens' });
 await server.register(statsRoutes, { prefix: '/api/v1/admin/stats' });
   await server.register(blockedEndpointsRoutes, { prefix: '/api/v1/admin/blocked-endpoints' });
   await server.register(configRoutes, { prefix: '/api/v1/admin/config' });
+  await server.register(modelsRoutes, { prefix: '/api/v1/admin/models' });
 
 // Proxy routes pass requests to Fireworks AI; protected by Bearer tokens
 // Wildcard catch-all MUST be registered last so specific routes (openai, anthropic) match first

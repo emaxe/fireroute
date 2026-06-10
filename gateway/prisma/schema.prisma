@@ -19,6 +19,19 @@ model BlockedEndpoint {
   @@map("blocked_endpoints")
 }
 
+model Model {
+  id        String   @id @default(uuid())
+  modelId   String   @unique @map("model_id")
+  name      String?
+  type      String   @default("chat")
+  active    Boolean  @default(true)
+  source    String   @default("upstream")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("models")
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique

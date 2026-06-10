@@ -9,6 +9,23 @@ interface User {
   createdAt: string;
 }
 
+function getCurrentUserId(): string | null {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(json).id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const INPUT =
   'border border-[#E8E8EC] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] bg-white ' +
   'placeholder-[#9C9C9C] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
@@ -38,8 +55,8 @@ export default function Users() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Service Users</h1>
-        <p className="text-sm text-[#6B6B6B] mt-1">Users who can authenticate to the gateway API</p>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Admin Users</h1>
+        <p className="text-sm text-[#6B6B6B] mt-1">Admin users who can manage the gateway</p>
       </div>
 
       {/* Add form */}
@@ -97,21 +114,25 @@ export default function Users() {
                 <td className={`${TD} text-[#6B6B6B]`}>{u.name || <span className="text-[#9C9C9C]">—</span>}</td>
                 <td className={TD}>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    u.role === 'admin'
-                      ? 'bg-indigo-50 text-[#6366F1]'
-                      : 'bg-gray-100 text-[#6B6B6B]'
+                    u.role === 'superadmin'
+                      ? 'bg-amber-50 text-amber-700'
+                      : u.role === 'admin'
+                        ? 'bg-indigo-50 text-[#6366F1]'
+                        : 'bg-gray-100 text-[#6B6B6B]'
                   }`}>
                     {u.role}
                   </span>
                 </td>
                 <td className={`${TD} text-[#9C9C9C]`}>{new Date(u.createdAt).toLocaleDateString()}</td>
                 <td className={`${TD} text-right`}>
-                  <button
-                    onClick={() => remove(u.id)}
-                    className="text-sm font-medium text-[#EF4444] hover:text-red-700 transition-colors"
-                  >
-                    Delete
-                  </button>
+                  {u.role !== 'superadmin' && u.id !== getCurrentUserId() && (
+                    <button
+                      onClick={() => remove(u.id)}
+                      className="text-sm font-medium text-[#EF4444] hover:text-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

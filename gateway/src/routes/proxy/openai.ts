@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { handleProxy } from './utils.js';
 import { KeyManager } from '../../services/key-manager.js';
+import { ModelManager } from '../../services/model-manager.js';
 import { StatsService } from '../../services/stats-service.js';
 import { config } from '../../config.js';
 
@@ -29,7 +30,82 @@ function sleep(ms: number): Promise<void> {
  */
 export async function openaiRoutes(server: FastifyInstance) {
   server.get('/models', { preHandler: server.verifyBearer }, async (request, reply) => {
-    return handleProxy(request, reply, '/models');
+    const start = Date.now();
+    const groupId = request.groupId || 'default';
+
+    try {
+      const key = await KeyManager.getNextKey(groupId);
+      if (!key) {
+        await StatsService.log({
+          tokenId: request.tokenId,
+          groupId,
+          endpoint: '/models',
+          status: 503,
+          latencyMs: Date.now() - start,
+          error: 'No available API keys',
+        });
+        return reply.status(503).send({ error: 'No available API keys' });
+      }
+
+      const upstreamRes = await fetch(`${config.FIREWORKS_BASE_URL}/models`, {
+        headers: { Authorization: `Bearer ${key.key}` },
+      });
+
+      if (!upstreamRes.ok) {
+        const body = await upstreamRes.text();
+        await StatsService.log({
+          tokenId: request.tokenId,
+          keyId: key.id,
+          groupId,
+          endpoint: '/models',
+          status: upstreamRes.status,
+          latencyMs: Date.now() - start,
+          error: body,
+        });
+        return reply.status(upstreamRes.status).send({ error: 'Fireworks API error', details: body });
+      }
+
+      const upstreamData = (await upstreamRes.json()) as any;
+      const inactiveIds = await ModelManager.getInactiveModelIds();
+      const manualModels = await ModelManager.getManualModels();
+
+      // Filter upstream: remove inactive models; add manual ones if missing
+      const upstreamList = (upstreamData.data || upstreamData.models || upstreamData || []).filter(
+        (m: any) => !inactiveIds.has(m.id)
+      );
+
+      const upstreamIds = new Set(upstreamList.map((m: any) => m.id));
+      const extraManual = manualModels.filter((m) => !upstreamIds.has(m.modelId)).map((m) => ({
+        id: m.modelId,
+        object: 'model',
+        created: Math.floor(new Date(m.createdAt).getTime() / 1000),
+        owned_by: 'manual',
+      }));
+
+      const mergedList = [...upstreamList, ...extraManual];
+
+      await StatsService.log({
+        tokenId: request.tokenId,
+        keyId: key.id,
+        groupId,
+        endpoint: '/models',
+        status: 200,
+        latencyMs: Date.now() - start,
+      });
+
+      return reply.send({ object: 'list', data: mergedList });
+    } catch (err) {
+      const latency = Date.now() - start;
+      await StatsService.log({
+        tokenId: request.tokenId,
+        groupId,
+        endpoint: '/models',
+        status: 500,
+        latencyMs: latency,
+        error: (err as Error).message,
+      });
+      return reply.status(500).send({ error: 'Proxy error', details: (err as Error).message });
+    }
   });
 
   server.post('/chat/completions', { preHandler: server.verifyBearer }, async (request, reply) => {
@@ -92,6 +168,7 @@ export async function openaiRoutes(server: FastifyInstance) {
 
       let imageBuffer: ArrayBuffer;
       let contentType = 'image/jpeg';
+      let usedPollinations = false;
 
       if (kontext) {
         // Async workflow for kontext models
@@ -175,7 +252,6 @@ export async function openaiRoutes(server: FastifyInstance) {
         // Sync workflow for standard flux models
         const endpoint = `/workflows/accounts/fireworks/models/${model}/text_to_image`;
         const url = `${config.FIREWORKS_BASE_URL}${endpoint}`;
-
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -185,28 +261,61 @@ export async function openaiRoutes(server: FastifyInstance) {
           },
           body: JSON.stringify(fireworksBody),
         });
-
         const latency = Date.now() - start;
         const status = response.status;
-
         if (!response.ok) {
           const errorBody = await response.text();
-          await StatsService.log({
-            tokenId: request.tokenId,
-            keyId: key.id,
-            groupId,
-            endpoint: '/images/generations',
-            status,
-            latencyMs: latency,
-            error: errorBody,
-          });
-          return reply.status(status).send({
-            error: 'Fireworks API error',
-            details: errorBody,
-          });
-        }
 
-        imageBuffer = await response.arrayBuffer();
+          // Pollinations fallback for free image generation when Fireworks auth fails
+          if (status === 401 || status === 404) {
+            try {
+              const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fireworksBody.prompt || '')}`;
+              const pollRes = await fetch(pollinationsUrl, { redirect: 'follow', headers: { Accept: 'image/*' } });
+              if (pollRes.ok) {
+                imageBuffer = await pollRes.arrayBuffer();
+                const ct = pollRes.headers.get('content-type') || '';
+                if (ct.includes('png')) {
+                  contentType = 'image/png';
+                } else if (ct.includes('jpeg') || ct.includes('jpg')) {
+                  contentType = 'image/jpeg';
+                }
+                usedPollinations = true;
+              } else {
+                throw new Error(`Pollinations fallback failed: ${pollRes.status}`);
+              }
+            } catch (pollErr) {
+              await StatsService.log({
+                tokenId: request.tokenId,
+                keyId: key.id,
+                groupId,
+                endpoint: '/images/generations',
+                status,
+                latencyMs: Date.now() - start,
+                error: errorBody,
+              });
+              return reply.status(401).send({
+                error: 'Fireworks API error',
+                details: errorBody,
+              });
+            }
+          } else {
+            await StatsService.log({
+              tokenId: request.tokenId,
+              keyId: key.id,
+              groupId,
+              endpoint: '/images/generations',
+              status,
+              latencyMs: Date.now() - start,
+              error: errorBody,
+            });
+            return reply.status(status).send({
+              error: 'Fireworks API error',
+              details: errorBody,
+            });
+          }
+        } else {
+          imageBuffer = await response.arrayBuffer();
+        }
       }
 
       const latency = Date.now() - start;

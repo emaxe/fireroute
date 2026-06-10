@@ -17,15 +17,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Playground page for interactive proxy request testing.
 - `k` / `M` compact formatting on all numeric chart axes (Dashboard).
 - `preHandler` auth hook on proxy routes so request body is parsed before bearer token validation (required for multi-group token routing).
+- Models management page (`/models`) in the admin panel with upstream model listing and model manager service.
+- `GET /api/v1/admin/models` endpoint for fetching upstream models through the gateway.
 
 ### Changed
 - Service tokens no longer have a single `groupId` field; replaced by a `TokenGroup` junction table.
 - Dashboard auto-refresh interval set to 5 seconds with a visual Live/Paused toggle.
 - Updated `AGENTS.md` with current architecture, conventions, and agent instructions.
+- Playground temporarily limited to **Chat** mode only; image generation UI removed until upstream image endpoints are restored.
+- README updated to reflect current feature set (removed image generation analytics, added model management).
 
 ### Fixed
 - Token `Myself` re-linked to `MAIN` group after schema migration removed the legacy `groupId` column.
 - Analytics SQL queries now use fully-qualified column names with table aliases to prevent ambiguous column errors.
+- **Critical auth fix:** Token selectors in Playground, Dashboard, and Logs now pass the hex `token` string instead of the UUID `id` to the proxy, resolving `401 Unauthorized` errors on gateway requests.
 
 ---
 

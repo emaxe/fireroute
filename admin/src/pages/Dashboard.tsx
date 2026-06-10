@@ -70,7 +70,7 @@ interface AnalyticsData {
   imageGeneration: ImageGenerationAnalytics;
 }
 
-interface DropdownOption { id: string; name: string }
+interface DropdownOption { id: string; name: string; token?: string }
 
 // ── Color tokens (from DESIGN.md) ──────────────────────────────────────────────────────────────────────────────
 
@@ -361,7 +361,7 @@ export default function Dashboard() {
 
         <select value={tokenId} onChange={(e) => setTokenId(e.target.value)} disabled={dropLoading} className={SELECT}>
           <option value="">All Tokens</option>
-          {tokens.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          {tokens.map((t) => <option key={t.id} value={t.token}>{t.name}</option>)}
         </select>
       </div>
 

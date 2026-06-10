@@ -17,7 +17,7 @@ FireRoute (also known as **FireGate**) proxies requests to the [Fireworks AI](ht
 | **Token groups (many-to-many)** | Bind a service token to one or multiple key groups |
 | **Bearer token auth** | Secure proxy access with automatic group routing |
 | **Admin dashboard** | Real-time charts, filters, auto-refresh (Recharts + Tailwind) |
-| **Image generation analytics** | Dedicated section for image requests, errors, latency |
+| **Model management** | Admin page for viewing and managing available upstream models |
 | **Blocked endpoints** | Admin-managed blocklist for proxy routes |
 | **User & token management** | JWT-based admin auth, CRUD for users, tokens, groups, keys |
 | **Request logs** | Full logging with token, key, group, latency, and token counts |
@@ -132,13 +132,14 @@ A service token can be bound to **one or many** key groups. The proxy resolves t
 
 ## Admin Panel Pages
 
-- **Dashboard** — real-time usage charts, token consumption, latency, error rate, image generation stats
+- **Dashboard** — real-time usage charts, token consumption, latency, error rate
 - **Keys** — API keys with suspended status, group assignment, last used
 - **Groups** — key groups with round-robin key rotation
+- **Models** — view and manage upstream models available to the gateway
 - **Tokens** — service tokens with multi-group binding
 - **Users** — admin users (JWT-based)
 - **Logs** — request logs with filters
-- **Playground** — test proxy requests interactively
+- **Playground** — test chat proxy requests interactively
 - **Settings** — gateway configuration (blocked endpoints, etc.)
 
 ---
