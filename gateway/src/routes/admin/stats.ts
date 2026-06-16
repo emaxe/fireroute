@@ -67,8 +67,7 @@ export async function statsRoutes(server: FastifyInstance) {
     // Return a zero-filled skeleton so the dashboard never crashes on SQL errors
     const emptyResponse = {
       summary: { total: 0, errors: 0, avgLatency: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      timeseries: [], byKey: [], byGroup: [], byToken: [], topEndpoints: [],
-      imageGeneration: { summary: { total: 0, errors: 0, avgLatency: 0 }, timeseries: [] },
+      timeseries: [], byKey: [], byGroup: [], byToken: [], byModel: [], topEndpoints: [],
     };
 
     try {

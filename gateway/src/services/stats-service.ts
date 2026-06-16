@@ -14,17 +14,20 @@ const prisma = new PrismaClient();
  *    so every analytic query uses the same filter logic.
  *  - `bucketExpr()` generates `date_trunc` SQL for hour or day buckets.
  *  - Bigint values from PostgreSQL COUNT/SUM are converted to JS numbers via `n()`.
- *  - Image-generation analytics are filtered by `endpoint LIKE '%/image%'`.
  */
 export const StatsService = {
   async log(data: {
     tokenId?: string;
+    tokenName?: string;
     keyId?: string;
+    keyName?: string;
     groupId?: string;
     endpoint: string;
     status: number;
     latencyMs: number;
     error?: string;
+    model?: string;
+    requestBody?: string;
     promptTokens?: number;
     completionTokens?: number;
     totalTokens?: number;
@@ -183,8 +186,7 @@ export const StatsService = {
       LEFT JOIN api_keys ak ON ak.id = r.key_id
       ${Prisma.join(keyConditions, ' AND ', 'WHERE ', '')}
       GROUP BY r.key_id, ak.name, ak.created_at
-      ORDER BY ak.created_at ASC
-      LIMIT 10
+      ORDER BY COALESCE(ak.name, r.key_id) ASC
     `;
 
     // ── byGroup ────────────────────────────────────────────────────────────────────────────────────
@@ -235,6 +237,27 @@ export const StatsService = {
       LIMIT 10
     `;
 
+    // ── byModel ────────────────────────────────────────────────────────────────────────────────────
+    const modelConditions = [...baseConditions('r'), Prisma.sql`r.model IS NOT NULL`];
+    const byModelRows = await prisma.$queryRaw<
+      { id: string; name: string; requests: bigint; errors: bigint; avg_latency: number; prompt_tokens: bigint; completion_tokens: bigint; total_tokens: bigint }[]
+    >`
+      SELECT
+        COALESCE(r.model, 'unknown')                          AS id,
+        COALESCE(r.model, 'unknown')                          AS name,
+        COUNT(*)                                              AS requests,
+        COUNT(CASE WHEN r.status >= 400 THEN 1 END)          AS errors,
+        COALESCE(AVG(r.latency_ms)::float8, 0)               AS avg_latency,
+        COALESCE(SUM(r.prompt_tokens), 0)                    AS prompt_tokens,
+        COALESCE(SUM(r.completion_tokens), 0)                AS completion_tokens,
+        COALESCE(SUM(r.total_tokens), 0)                     AS total_tokens
+      FROM request_logs r
+      ${Prisma.join(modelConditions, ' AND ', 'WHERE ', '')}
+      GROUP BY r.model
+      ORDER BY requests DESC
+      LIMIT 10
+    `;
+
     // ── topEndpoints ───────────────────────────────────────────────────────────────────────────────
     const endpointRows = await prisma.$queryRaw<
       { endpoint: string; requests: bigint; errors: bigint; prompt_tokens: bigint; completion_tokens: bigint; total_tokens: bigint }[]
@@ -251,35 +274,6 @@ export const StatsService = {
       GROUP BY endpoint
       ORDER BY requests DESC
       LIMIT 10
-    `;
-
-    // ── Image Generation ───────────────────────────────────────────────────────────────────────────────
-    const imageConditions = [...baseConditions(), Prisma.sql`endpoint LIKE '%/image%'`];
-    const imageWhere = Prisma.join(imageConditions, ' AND ', 'WHERE ', '');
-
-    const [imageSummaryRow] = await prisma.$queryRaw<
-      { total: bigint; errors: bigint; avg_latency: number }[]
-    >`
-      SELECT
-        COUNT(*)                                              AS total,
-        COUNT(CASE WHEN status >= 400 THEN 1 END)            AS errors,
-        COALESCE(AVG(latency_ms)::float8, 0)                 AS avg_latency
-      FROM request_logs
-      ${imageWhere}
-    `;
-
-    const imageTimeseriesRows = await prisma.$queryRaw<
-      { time: Date; requests: bigint; errors: bigint; avg_latency: number }[]
-    >`
-      SELECT
-        ${bucketExpr()}                                       AS time,
-        COUNT(*)                                              AS requests,
-        COUNT(CASE WHEN status >= 400 THEN 1 END)            AS errors,
-        COALESCE(AVG(latency_ms)::float8, 0)                 AS avg_latency
-      FROM request_logs
-      ${imageWhere}
-      GROUP BY ${bucketExpr()}
-      ORDER BY time ASC
     `;
 
     return {
@@ -324,6 +318,14 @@ export const StatsService = {
         completionTokens: n(r.completion_tokens),
         totalTokens:      n(r.total_tokens),
       })),
+      byModel: byModelRows.map((r) => ({
+        id: r.id, name: r.name,
+        requests: n(r.requests), errors: n(r.errors),
+        avgLatency: Math.round(r.avg_latency),
+        promptTokens:     n(r.prompt_tokens),
+        completionTokens: n(r.completion_tokens),
+        totalTokens:      n(r.total_tokens),
+      })),
       topEndpoints: endpointRows.map((r) => ({
         endpoint: r.endpoint,
         requests: n(r.requests),
@@ -332,19 +334,6 @@ export const StatsService = {
         completionTokens: n(r.completion_tokens),
         totalTokens:      n(r.total_tokens),
       })),
-      imageGeneration: {
-        summary: {
-          total:      n(imageSummaryRow.total),
-          errors:     n(imageSummaryRow.errors),
-          avgLatency: Math.round(imageSummaryRow.avg_latency),
-        },
-        timeseries: imageTimeseriesRows.map((r) => ({
-          time:       r.time.toISOString(),
-          requests:   n(r.requests),
-          errors:     n(r.errors),
-          avgLatency: Math.round(r.avg_latency),
-        })),
-      },
     };
   },
 };

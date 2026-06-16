@@ -32,6 +32,7 @@ export async function openaiRoutes(server: FastifyInstance) {
   server.get('/models', { preHandler: server.verifyBearer }, async (request, reply) => {
     const start = Date.now();
     const groupId = request.groupId || 'default';
+    const requestBody = request.body ? JSON.stringify(request.body) : undefined;
 
     try {
       const key = await KeyManager.getNextKey(groupId);
@@ -43,6 +44,7 @@ export async function openaiRoutes(server: FastifyInstance) {
           status: 503,
           latencyMs: Date.now() - start,
           error: 'No available API keys',
+          requestBody,
         });
         return reply.status(503).send({ error: 'No available API keys' });
       }
@@ -61,6 +63,7 @@ export async function openaiRoutes(server: FastifyInstance) {
           status: upstreamRes.status,
           latencyMs: Date.now() - start,
           error: body,
+          requestBody,
         });
         return reply.status(upstreamRes.status).send({ error: 'Fireworks API error', details: body });
       }
@@ -91,6 +94,7 @@ export async function openaiRoutes(server: FastifyInstance) {
         endpoint: '/models',
         status: 200,
         latencyMs: Date.now() - start,
+        requestBody,
       });
 
       return reply.send({ object: 'list', data: mergedList });
@@ -103,6 +107,7 @@ export async function openaiRoutes(server: FastifyInstance) {
         status: 500,
         latencyMs: latency,
         error: (err as Error).message,
+        requestBody,
       });
       return reply.status(500).send({ error: 'Proxy error', details: (err as Error).message });
     }
@@ -116,6 +121,7 @@ export async function openaiRoutes(server: FastifyInstance) {
     const start = Date.now();
     const groupId = request.groupId || 'default';
     const body = request.body as any;
+    const requestBody = JSON.stringify(request.body);
     const modelRaw = body?.model || 'flux-1-schnell-fp8';
     const model = modelRaw.replace(/^accounts\/fireworks\/models\//, '');
     const kontext = isKontextModel(model);
@@ -130,6 +136,7 @@ export async function openaiRoutes(server: FastifyInstance) {
           status: 503,
           latencyMs: Date.now() - start,
           error: 'No available API keys',
+          requestBody,
         });
         return reply.status(503).send({ error: 'No available API keys' });
       }
@@ -292,6 +299,7 @@ export async function openaiRoutes(server: FastifyInstance) {
                 status,
                 latencyMs: Date.now() - start,
                 error: errorBody,
+                requestBody,
               });
               return reply.status(401).send({
                 error: 'Fireworks API error',
@@ -307,6 +315,7 @@ export async function openaiRoutes(server: FastifyInstance) {
               status,
               latencyMs: Date.now() - start,
               error: errorBody,
+              requestBody,
             });
             return reply.status(status).send({
               error: 'Fireworks API error',
@@ -327,6 +336,7 @@ export async function openaiRoutes(server: FastifyInstance) {
         endpoint: '/images/generations',
         status: 200,
         latencyMs: latency,
+        requestBody,
       });
 
       // Check if client wants raw binary image
@@ -361,6 +371,7 @@ export async function openaiRoutes(server: FastifyInstance) {
         status: 500,
         latencyMs: latency,
         error: (err as Error).message,
+        requestBody,
       });
       return reply.status(500).send({
         error: 'Proxy error',

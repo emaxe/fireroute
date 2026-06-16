@@ -23,10 +23,10 @@ interface ServiceToken {
 }
 
 const INPUT =
-  'border border-[#E8E8EC] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] bg-white ' +
-  'placeholder-[#9C9C9C] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
+  'border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] dark:text-[#F0F0F0] bg-white dark:bg-[#161616] ' +
+  'placeholder-[#9C9C9C] dark:placeholder-[#6B6B6B] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
 
-const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]';
+const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B]';
 const TD = 'px-4 py-3 text-sm';
 
 /**
@@ -49,7 +49,7 @@ function MultiSelectGroups({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]">{label}</label>
+      <label className="block text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B]">{label}</label>
       <div className="flex flex-wrap gap-2">
         {groups.map((g) => {
           const checked = selected.includes(g.id);
@@ -59,7 +59,7 @@ function MultiSelectGroups({
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium cursor-pointer transition-colors select-none border ${
                 checked
                   ? 'bg-[#6366F1]/10 border-[#6366F1] text-[#6366F1]'
-                  : 'bg-white border-[#E8E8EC] text-[#6B6B6B] hover:border-[#9C9C9C]'
+                  : 'bg-white dark:bg-[#161616] border-[#E8E8EC] dark:border-[#2A2A2A] text-[#6B6B6B] dark:text-[#9C9C9C] hover:border-[#9C9C9C]'
               }`}
             >
               <input
@@ -82,7 +82,7 @@ function MultiSelectGroups({
         })}
       </div>
       {selected.length === 0 && (
-        <p className="text-xs text-[#9C9C9C]">No groups selected — token will use the default group.</p>
+        <p className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B]">No groups selected — token will use the default group.</p>
       )}
     </div>
   );
@@ -159,8 +159,8 @@ export default function Tokens() {
     <div>
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Service Tokens</h1>
-          <p className="text-sm text-[#6B6B6B] mt-1">Bearer tokens for authenticating API requests. Each token can be bound to multiple key groups.</p>
+          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight">Service Tokens</h1>
+          <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1">Bearer tokens for authenticating API requests. Each token can be bound to multiple key groups.</p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
@@ -176,12 +176,12 @@ export default function Tokens() {
         <div className="bg-[#FFFBEB] border border-[#F59E0B]/30 rounded-xl p-5 mb-5">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="text-sm font-semibold text-[#0A0A0A]">Token generated</p>
-              <p className="text-xs text-[#6B6B6B] mt-0.5">Copy it now — it will not be shown again.</p>
+              <p className="text-sm font-semibold text-[#0A0A0A] dark:text-[#F0F0F0]">Token generated</p>
+              <p className="text-xs text-[#6B6B6B] dark:text-[#9C9C9C] mt-0.5">Copy it now — it will not be shown again.</p>
             </div>
             <button
               onClick={() => setNewToken('')}
-              className="text-xs text-[#9C9C9C] hover:text-[#6B6B6B] transition-colors"
+              className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B] hover:text-[#6B6B6B] dark:text-[#9C9C9C] transition-colors"
             >
               Dismiss
             </button>
@@ -197,8 +197,8 @@ export default function Tokens() {
 
       {/* Create form */}
       {showCreate && (
-        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5 space-y-4">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Generate Token</p>
+        <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 mb-5 space-y-4 transition-colors duration-300">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">Generate Token</p>
           <input
             value={tokenName}
             onChange={(e) => setTokenName(e.target.value)}
@@ -225,8 +225,8 @@ export default function Tokens() {
 
       {/* Edit modal / inline */}
       {editToken && (
-        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 mb-5 space-y-4">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Edit Token</p>
+        <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 mb-5 space-y-4 transition-colors duration-300">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">Edit Token</p>
           <input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -242,7 +242,7 @@ export default function Tokens() {
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={() => setEditToken(null)}
-              className="px-4 py-2.5 rounded-[6px] text-sm font-medium border border-[#E8E8EC] text-[#6B6B6B] hover:bg-[#FAFAFA] transition-colors"
+              className="px-4 py-2.5 rounded-[6px] text-sm font-medium border border-[#E8E8EC] dark:border-[#2A2A2A] text-[#6B6B6B] dark:text-[#9C9C9C] hover:bg-[#FAFAFA] dark:bg-[#0A0A0A] transition-colors"
             >
               Cancel
             </button>
@@ -258,10 +258,10 @@ export default function Tokens() {
       )}
 
       {/* Table */}
-      <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl overflow-hidden transition-colors duration-300">
         <div className="overflow-x-auto">
         <table className="w-full min-w-[640px]">
-          <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
+          <thead className="bg-[#FAFAFA] dark:bg-[#0A0A0A] border-b border-[#E8E8EC] dark:border-[#2A2A2A] transition-colors duration-300">
             <tr>
               <th className={TH}>Token</th>
               <th className={TH}>Name</th>
@@ -274,27 +274,27 @@ export default function Tokens() {
           <tbody className="divide-y divide-[#E8E8EC]">
             {tokens.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#9C9C9C]">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">
                   No tokens yet. Generate one above.
                 </td>
               </tr>
             )}
             {tokens.map((t) => (
-              <tr key={t.id} className="hover:bg-[#FAFAFA] transition-colors">
+              <tr key={t.id} className="hover:bg-[#FAFAFA] dark:bg-[#0A0A0A] transition-colors">
                 <td className={TD}>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono text-[#6B6B6B] truncate">{t.token.slice(0, 16)}…</span>
+                    <span className="text-sm font-mono text-[#6B6B6B] dark:text-[#9C9C9C] truncate">{t.token.slice(0, 16)}…</span>
                     <CopyButton text={t.token} variant="light" inline />
                   </div>
                 </td>
-                <td className={`${TD} text-[#6B6B6B]`}>{t.name || <span className="text-[#9C9C9C]">—</span>}</td>
+                <td className={`${TD} text-[#6B6B6B] dark:text-[#9C9C9C]`}>{t.name || <span className="text-[#9C9C9C] dark:text-[#6B6B6B]">—</span>}</td>
                 <td className={TD}>
                   <div className="flex flex-wrap gap-1.5">
                     {t.groups.length === 0 ? (
-                      <span className="text-xs text-[#9C9C9C]">default</span>
+                      <span className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B]">default</span>
                     ) : (
                       t.groups.map((tg) => (
-                        <span key={tg.id} className="bg-[#F3F4F6] text-[#6B6B6B] px-2 py-0.5 rounded-[4px] text-xs font-medium">
+                        <span key={tg.id} className="bg-[#F3F4F6] text-[#6B6B6B] dark:text-[#9C9C9C] px-2 py-0.5 rounded-[4px] text-xs font-medium">
                           {tg.group.name}
                         </span>
                       ))
@@ -303,11 +303,11 @@ export default function Tokens() {
                 </td>
                 <td className={TD}>
                   {t.active
-                    ? <span className="bg-[#DCFCE7] text-[#10B981] px-2.5 py-0.5 rounded-full text-xs font-medium">Active</span>
-                    : <span className="bg-gray-100 text-[#9C9C9C] px-2.5 py-0.5 rounded-full text-xs font-medium">Revoked</span>
+                    ? <span className="bg-[#DCFCE7] dark:bg-[#10B981]/15 text-[#10B981] px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-300">Active</span>
+                    : <span className="bg-gray-100 dark:bg-white/10 text-[#9C9C9C] dark:text-[#6B6B6B] px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-300">Revoked</span>
                   }
                 </td>
-                <td className={`${TD} text-[#9C9C9C]`}>{new Date(t.createdAt).toLocaleDateString()}</td>
+                <td className={`${TD} text-[#9C9C9C] dark:text-[#6B6B6B]`}>{new Date(t.createdAt).toLocaleDateString()}</td>
                 <td className={`${TD} text-right`}>
                   <div className="flex items-center justify-end gap-4">
                     <button
@@ -326,7 +326,7 @@ export default function Tokens() {
                     )}
                     <button
                       onClick={() => remove(t.id)}
-                      className="text-sm font-medium text-[#9C9C9C] hover:text-[#EF4444] transition-colors"
+                      className="text-sm font-medium text-[#9C9C9C] dark:text-[#6B6B6B] hover:text-[#EF4444] transition-colors"
                     >
                       Delete
                     </button>

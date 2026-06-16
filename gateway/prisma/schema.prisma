@@ -25,6 +25,7 @@ model Model {
   name      String?
   type      String   @default("chat")
   active    Boolean  @default(true)
+  anthropicProxy Boolean @default(true) @map("anthropic_proxy")
   source    String   @default("upstream")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -118,6 +119,8 @@ model RequestLog {
   tokenId   String?  @map("token_id")
   keyId     String?  @map("key_id")
   groupId   String?  @map("group_id")
+  tokenName String?  @map("token_name")
+  keyName   String?  @map("key_name")
   endpoint  String
   status    Int
   latencyMs Int      @map("latency_ms")
@@ -125,6 +128,8 @@ model RequestLog {
   completionTokens Int? @map("completion_tokens")
   totalTokens      Int? @map("total_tokens")
   error     String?
+  model     String?  @map("model")
+  requestBody String?  @map("request_body")
   createdAt DateTime @default(now()) @map("created_at")
 
   token ServiceToken? @relation(fields: [tokenId], references: [id])

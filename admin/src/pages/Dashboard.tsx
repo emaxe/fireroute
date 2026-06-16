@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import API from '../api/client';
+import { useTheme } from '../hooks/useTheme';
 
 // ── Types ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -41,22 +42,6 @@ interface EndpointItem {
   totalTokens: number;
 }
 
-interface ImageGenerationBucket {
-  time: string;
-  requests: number;
-  errors: number;
-  avgLatency: number;
-}
-
-interface ImageGenerationAnalytics {
-  summary: {
-    total: number;
-    errors: number;
-    avgLatency: number;
-  };
-  timeseries: ImageGenerationBucket[];
-}
-
 interface AnalyticsData {
   summary: {
     total: number; errors: number; avgLatency: number;
@@ -66,8 +51,8 @@ interface AnalyticsData {
   byKey:        BreakdownItem[];
   byGroup:      BreakdownItem[];
   byToken:      BreakdownItem[];
+  byModel:      BreakdownItem[];
   topEndpoints: EndpointItem[];
-  imageGeneration: ImageGenerationAnalytics;
 }
 
 interface DropdownOption { id: string; name: string; token?: string }
@@ -81,7 +66,6 @@ const C = {
   red:      '#EF4444',
   amber:    '#F59E0B',
   sky:      '#0EA5E9',
-  pink:     '#EC4899',
   slate:    '#9C9C9C',
   slateLight: '#E8E8EC',
   bg:       '#FAFAFA',
@@ -143,34 +127,34 @@ function fmtNum(n: number): string {
 
 // ── Shared UI primitives ──────────────────────────────────────────────────────────────────────────────────────────────
 
-function NoData() {
+function NoData({ isDark }: { isDark: boolean }) {
   return (
-    <div className="flex items-center justify-center h-full text-sm text-[#9C9C9C]">
+    <div className={`flex items-center justify-center h-full text-sm ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>
       No data
     </div>
   );
 }
 
-function ChartBox({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
+function ChartBox({ title, children, className = '', isDark }: { title: string; children: ReactNode; className?: string; isDark: boolean }) {
   return (
-    <div className={`bg-white border border-[#E8E8EC] rounded-xl p-5 ${className}`}>
-      <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-4">{title}</p>
+    <div className={`bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 transition-colors duration-300 ${className}`}>
+      <p className={`text-[11px] font-medium uppercase tracking-wider mb-4 ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{title}</p>
       <div className="h-52">{children}</div>
     </div>
   );
 }
 
-function MiniCard({ label, value, color, icon, sub }: {
-  label: string; value: string; color: string; icon?: ReactNode; sub?: string;
+function MiniCard({ label, value, color, icon, sub, isDark }: {
+  label: string; value: string; color: string; icon?: ReactNode; sub?: string; isDark: boolean;
 }) {
   return (
-    <div className="bg-white border border-[#E8E8EC] rounded-xl p-5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200">
+    <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center gap-2 mb-3">
         {icon && <span className="text-lg">{icon}</span>}
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]">{label}</p>
+        <p className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{label}</p>
       </div>
       <p className={`font-display font-bold text-3xl tracking-tight ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-[#9C9C9C] mt-1">{sub}</p>}
+      {sub && <p className={`text-xs mt-1 ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{sub}</p>}
     </div>
   );
 }
@@ -206,9 +190,9 @@ function CustomTooltip({ active, payload, label }: any) {
  *  - Auto-refresh every 5 s in the background (no full-page spinner).
  *  - Zero-filled timeseries so charts never show gaps.
  *  - Token consumption formatted as k/M for readability on axes and tooltips.
- *  - Image generation metrics separated from text/LLM traffic.
  */
 export default function Dashboard() {
+  const { isDark } = useTheme();
   const [range, setRange]     = useState<Range>('7d');
   const [keyId, setKeyId]     = useState('');
   const [groupId, setGroupId] = useState('');
@@ -291,8 +275,8 @@ export default function Dashboard() {
   ];
 
   const SELECT =
-    'border border-[#E8E8EC] rounded-[6px] px-3 py-2 text-sm text-[#0A0A0A] bg-white ' +
-    'focus:outline-none focus:border-[#6366F1] disabled:opacity-50 disabled:cursor-not-allowed';
+    'border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-[6px] px-3 py-2 text-sm text-[#0A0A0A] dark:text-[#F0F0F0] bg-white dark:bg-[#161616] ' +
+    'focus:outline-none focus:border-[#6366F1] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300';
 
   // Token composition pie data
   const pieData = summary && summary.totalTokens > 0
@@ -302,21 +286,24 @@ export default function Dashboard() {
       ]
     : [];
 
+  const chartGridColor = isDark ? '#2A2A2A' : '#F0F0F0';
+  const chartAxisColor = isDark ? '#9C9C9C' : '#6B6B6B';
+
   return (
     <div>
       {/* Header */}
       <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Dashboard</h1>
-          <p className="text-sm text-[#6B6B6B] mt-1">Gateway usage & token consumption analytics</p>
+          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight transition-colors duration-300">Dashboard</h1>
+          <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1 transition-colors duration-300">Gateway usage & token consumption analytics</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setAutoRefresh(v => !v)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-xs font-medium border transition-colors ${
               autoRefresh
-                ? 'bg-[#DCFCE7] text-[#10B981] border-[#10B981]/30'
-                : 'bg-white text-[#9C9C9C] border-[#E8E8EC] hover:text-[#0A0A0A]'
+                ? 'bg-[#DCFCE7] dark:bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30 dark:border-[#10B981]/50'
+                : 'bg-white dark:bg-[#161616] text-[#9C9C9C] dark:text-[#6B6B6B] border-[#E8E8EC] dark:border-[#2A2A2A] hover:text-[#0A0A0A] dark:hover:text-[#F0F0F0]'
             }`}
             title={autoRefresh ? 'Auto-refresh ON (5 s)' : 'Auto-refresh OFF'}
           >
@@ -324,7 +311,7 @@ export default function Dashboard() {
             {autoRefresh ? 'Live' : 'Paused'}
           </button>
           {lastUpdated && (
-            <span className="text-[11px] text-[#9C9C9C]">
+            <span className="text-[11px] text-[#9C9C9C] dark:text-[#6B6B6B] transition-colors duration-300">
               Updated {lastUpdated.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
@@ -333,7 +320,7 @@ export default function Dashboard() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center bg-white border border-[#E8E8EC] rounded-[8px] overflow-hidden">
+        <div className="flex items-center bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-[8px] overflow-hidden transition-colors duration-300">
           {RANGES.map(({ value, label }) => (
             <button
               key={value}
@@ -341,7 +328,7 @@ export default function Dashboard() {
               className={`px-3.5 py-2 text-sm font-medium transition-colors ${
                 range === value
                   ? 'bg-[#6366F1] text-white'
-                  : 'text-[#6B6B6B] hover:bg-[#FAFAFA]'
+                  : 'text-[#6B6B6B] dark:text-[#9C9C9C] hover:bg-[#FAFAFA] dark:hover:bg-white/5'
               }`}
             >
               {label}
@@ -370,27 +357,31 @@ export default function Dashboard() {
         <MiniCard
           label="Total Requests"
           value={summary ? summary.total.toLocaleString() : '—'}
-          color="text-[#0A0A0A]"
+          color="text-[#0A0A0A] dark:text-[#F0F0F0]"
           icon="📊"
+          isDark={isDark}
         />
         <MiniCard
           label="Errors"
           value={summary ? summary.errors.toLocaleString() : '—'}
-          color={summary?.errors ? 'text-[#EF4444]' : 'text-[#0A0A0A]'}
+          color={summary?.errors ? 'text-[#EF4444]' : 'text-[#0A0A0A] dark:text-[#F0F0F0]'}
           icon="⚠️"
           sub={errorRate !== '—' ? `${errorRate} of total` : undefined}
+          isDark={isDark}
         />
         <MiniCard
           label="Avg Latency"
           value={summary ? `${summary.avgLatency} ms` : '—'}
-          color="text-[#0A0A0A]"
+          color="text-[#0A0A0A] dark:text-[#F0F0F0]"
           icon="⚡"
+          isDark={isDark}
         />
         <MiniCard
           label="Error Rate"
           value={errorRate}
-          color="text-[#0A0A0A]"
+          color="text-[#0A0A0A] dark:text-[#F0F0F0]"
           icon="📉"
+          isDark={isDark}
         />
         <MiniCard
           label="Prompt Tokens"
@@ -398,6 +389,7 @@ export default function Dashboard() {
           color="text-[#6366F1]"
           icon="📝"
           sub={summary && summary.totalTokens > 0 ? `${(summary.promptTokens/summary.totalTokens*100).toFixed(1)}%` : undefined}
+          isDark={isDark}
         />
         <MiniCard
           label="Completion Tokens"
@@ -405,27 +397,63 @@ export default function Dashboard() {
           color="text-[#10B981]"
           icon="✍️"
           sub={summary && summary.totalTokens > 0 ? `${(summary.completionTokens/summary.totalTokens*100).toFixed(1)}%` : undefined}
+          isDark={isDark}
         />
         <MiniCard
           label="Total Tokens"
           value={summary ? fmtNum(summary.totalTokens) : '—'}
           color="text-[#8B5CF6]"
           icon="📈"
+          isDark={isDark}
         />
       </div>
 
       {/* Charts — fade during loading */}
       <div style={{ opacity: loading ? 0.4 : 1, transition: 'opacity 0.2s' }}>
 
+        {/* Row 0.5: Token consumption by API Key (moved up for visibility) */}
+        <ChartBox title="Token consumption by API Key" className="mb-5" isDark={isDark}>
+          {(!data?.byKey || data.byKey.length === 0) ? <NoData isDark={isDark} /> : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.byKey} layout="vertical" margin={{ left: 20, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: chartAxisColor }} tickFormatter={fmtNum} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: chartAxisColor }} width={140} interval={0} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="promptTokens"     fill={C.indigo}  name="Prompt"     stackId="a" radius={[2, 0, 0, 2]} />
+                <Bar dataKey="completionTokens" fill={C.emerald} name="Completion" stackId="a" radius={[0, 2, 2, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartBox>
+
+        {/* Row 0.5: Token consumption by Model */}
+        <ChartBox title="Token consumption by Model" className="mb-5" isDark={isDark}>
+          {(!data?.byModel || data.byModel.length === 0) ? <NoData isDark={isDark} /> : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.byModel} layout="vertical" margin={{ left: 20, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: chartAxisColor }} tickFormatter={fmtNum} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: chartAxisColor }} width={140} interval={0} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="promptTokens"     fill={C.indigo}  name="Prompt"     stackId="a" radius={[2, 0, 0, 2]} />
+                <Bar dataKey="completionTokens" fill={C.emerald} name="Completion" stackId="a" radius={[0, 2, 2, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartBox>
+
         {/* Row 1: Requests + Latency */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-          <ChartBox title="Requests over time">
-            {tsLabels.length === 0 ? <NoData /> : (
+          <ChartBox title="Requests over time" isDark={isDark}>
+            {tsLabels.length === 0 ? <NoData isDark={isDark} /> : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={tsLabels}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtNum} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartAxisColor }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11, fill: chartAxisColor }} tickFormatter={fmtNum} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="requests" fill={C.indigo} name="Requests" radius={[2, 2, 0, 0]} />
@@ -435,8 +463,8 @@ export default function Dashboard() {
             )}
           </ChartBox>
 
-          <ChartBox title="Avg latency (ms)">
-            {tsLabels.length === 0 ? <NoData /> : (
+          <ChartBox title="Avg latency (ms)" isDark={isDark}>
+            {tsLabels.length === 0 ? <NoData isDark={isDark} /> : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={tsLabels}>
                   <defs>
@@ -445,9 +473,9 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor={C.indigo} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} unit=" ms" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartAxisColor }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11, fill: chartAxisColor }} unit=" ms" />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="avgLatency" stroke={C.indigo} fill="url(#latGrad)" strokeWidth={2} name="Latency" />
                 </AreaChart>
@@ -458,8 +486,8 @@ export default function Dashboard() {
 
         {/* Row 2: Token usage stacked area + composition pie */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-          <ChartBox title="Token usage over time" className="lg:col-span-2">
-            {tsLabels.length === 0 ? <NoData /> : (
+          <ChartBox title="Token usage over time" className="lg:col-span-2" isDark={isDark}>
+            {tsLabels.length === 0 ? <NoData isDark={isDark} /> : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={tsLabels}>
                   <defs>
@@ -472,9 +500,9 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor={C.emerald} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtNum} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: chartAxisColor }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 11, fill: chartAxisColor }} tickFormatter={fmtNum} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                   <Area type="monotone" dataKey="promptTokens"     stackId="1" stroke={C.indigo}  fill="url(#promptGrad)" strokeWidth={2} name="Prompt" />
@@ -484,211 +512,139 @@ export default function Dashboard() {
             )}
           </ChartBox>
 
-          <ChartBox title="Token composition">
-            {pieData.length === 0 ? <NoData /> : (
+          <ChartBox title="Token composition" isDark={isDark}>
+            {pieData.length === 0 ? <NoData isDark={isDark} /> : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
-                    cx="50%" cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
                     dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    stroke="none"
                   >
                     {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={index} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  <Legend
+                    verticalAlign="bottom"
+                    iconSize={10}
+                    wrapperStyle={{ fontSize: 12, paddingTop: 16 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </ChartBox>
         </div>
 
-        {/* Row 2.5: Token consumption by API Key */}
-        <ChartBox title="Token consumption by API Key" className="mb-5">
-          {(!data?.byKey || data.byKey.length === 0) ? <NoData /> : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.byKey} layout="vertical" margin={{ left: 20, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={fmtNum} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={140} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="promptTokens"     fill={C.indigo}  name="Prompt"     stackId="a" radius={[2, 0, 0, 2]} />
-                <Bar dataKey="completionTokens" fill={C.emerald} name="Completion" stackId="a" radius={[0, 2, 2, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </ChartBox>
-
-        {/* Row 3: Breakdown tables — rich colored bars + token counts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-          <BreakdownCard title="By Key" data={data?.byKey ?? []} />
-          <BreakdownCard title="By Group" data={data?.byGroup ?? []} />
-          <BreakdownCard title="By Token" data={data?.byToken ?? []} />
+        {/* Row 3: Breakdown tables + endpoints */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <BreakdownTable
+            title="Top API Keys"
+            data={data?.byKey}
+            isDark={isDark}
+          />
+          <BreakdownTable
+            title="Top Groups"
+            data={data?.byGroup}
+            isDark={isDark}
+          />
         </div>
 
-        {/* Row 4: Top endpoints */}
-        <ChartBox title="Top Endpoints" className="mb-5">
-          <EndpointTable data={data?.topEndpoints ?? []} />
-        </ChartBox>
-
-        {/* Row 5: Image Generation */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-lg">🖼️</span>
-            <h2 className="text-lg font-semibold text-[#0A0A0A]">Image Generation</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-            <MiniCard
-              label="Total Requests"
-              value={data?.imageGeneration?.summary ? data.imageGeneration.summary.total.toLocaleString() : '—'}
-              color="text-[#0A0A0A]"
-              icon="🖼️"
-            />
-            <MiniCard
-              label="Errors"
-              value={data?.imageGeneration?.summary ? data.imageGeneration.summary.errors.toLocaleString() : '—'}
-              color={data?.imageGeneration?.summary && data.imageGeneration.summary.errors > 0 ? 'text-[#EF4444]' : 'text-[#0A0A0A]'}
-              icon="⚠️"
-            />
-            <MiniCard
-              label="Avg Latency"
-              value={data?.imageGeneration?.summary ? `${data.imageGeneration.summary.avgLatency} ms` : '—'}
-              color="text-[#0A0A0A]"
-              icon="⚡"
-            />
-          </div>
-          <ChartBox title="Image requests over time">
-            {(!data?.imageGeneration?.timeseries || data.imageGeneration.timeseries.length === 0) ? <NoData /> : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.imageGeneration.timeseries.map((b) => ({ ...b, label: fmtTime(b.time, range) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtNum} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="requests" fill={C.pink} name="Requests" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="errors"   fill={C.red}   name="Errors"   radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </ChartBox>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+          <BreakdownTable
+            title="Top Service Tokens"
+            data={data?.byToken}
+            isDark={isDark}
+          />
+          <EndpointTable
+            title="Top Endpoints"
+            data={data?.topEndpoints}
+            isDark={isDark}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-// ── Rich breakdown card with colored mini-bars ──────────────────────────────────────────────────────────────────────────────────────────
+// ── Table components ────────────────────────────────────────────────────────────────────────────────────────────────
 
-/**
- * BreakdownCard — shows a ranked list of keys/groups/tokens with a stacked
- * mini-bar per row (prompt → completion → errors). The bar width is relative
- * to the top item so the visual comparison is immediate.
- */
-function BreakdownCard({ title, data }: { title: string; data: BreakdownItem[] }) {
-  if (!data.length) {
-    return (
-      <div className="bg-white border border-[#E8E8EC] rounded-xl p-5">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-4">{title}</p>
-        <NoData />
-      </div>
-    );
-  }
-  const maxReq = Math.max(...data.map((d) => d.requests));
+function BreakdownTable({ title, data, isDark }: { title: string; data?: BreakdownItem[]; isDark: boolean }) {
+  if (!data || data.length === 0) return (
+    <div className={`bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 transition-colors duration-300`}>
+      <p className={`text-[11px] font-medium uppercase tracking-wider mb-4 ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{title}</p>
+      <NoData isDark={isDark} />
+    </div>
+  );
+
   return (
-    <div className="bg-white border border-[#E8E8EC] rounded-xl p-5">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-4">{title}</p>
-      <div className="flex flex-col gap-3 max-h-64 overflow-y-auto pr-1">
-        {data.map((item) => {
-          const pct = maxReq > 0 ? (item.requests / maxReq) * 100 : 0;
-          const errPct = item.requests > 0 ? (item.errors / item.requests) * 100 : 0;
-          return (
-            <div key={item.id}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-[#0A0A0A] truncate max-w-[55%]">{item.name || item.id.slice(0, 8)}</span>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="font-mono text-[#6366F1]">{item.requests.toLocaleString()} req</span>
-                  {item.errors > 0 && (
-                    <span className="font-mono text-[#EF4444]">{item.errors} err</span>
-                  )}
-                </div>
-              </div>
-              {/* Stacked mini bar: prompt (indigo) + completion (emerald) + errors (red) */}
-              <div className="h-2 bg-[#F0F0F0] rounded-full overflow-hidden flex">
-                {item.totalTokens > 0 && (
-                  <>
-                    <div
-                      className="h-full bg-[#6366F1]"
-                      style={{ width: `${(item.promptTokens / item.totalTokens) * pct}%` }}
-                    />
-                    <div
-                      className="h-full bg-[#10B981]"
-                      style={{ width: `${(item.completionTokens / item.totalTokens) * pct}%` }}
-                    />
-                  </>
-                )}
-                {item.errors > 0 && (
-                  <div className="h-full bg-[#EF4444]" style={{ width: `${errPct}%` }} />
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-1 text-[10px] text-[#9C9C9C]">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6366F1]" />
-                  {fmtNum(item.promptTokens)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  {fmtNum(item.completionTokens)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />
-                  {fmtNum(item.totalTokens)} total
-                </span>
-              </div>
-            </div>
-          );
-        })}
+    <div className={`bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl overflow-hidden transition-colors duration-300`}>
+      <p className={`px-5 pt-5 text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{title}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm mt-3">
+          <thead>
+            <tr className={`border-b border-[#E8E8EC] dark:border-[#2A2A2A] ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>
+              <th className="px-5 py-2 text-left font-medium">Name</th>
+              <th className="px-5 py-2 text-right font-medium">Req</th>
+              <th className="px-5 py-2 text-right font-medium">Err</th>
+              <th className="px-5 py-2 text-right font-medium">Avg ms</th>
+              <th className="px-5 py-2 text-right font-medium">Tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.id} className="border-b border-[#E8E8EC] dark:border-[#2A2A2A] last:border-0 transition-colors">
+                <td className="px-5 py-2.5 font-medium text-[#0A0A0A] dark:text-[#F0F0F0] transition-colors">{row.name}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{row.requests.toLocaleString()}</td>
+                <td className={`px-5 py-2.5 text-right tabular-nums ${row.errors > 0 ? 'text-[#EF4444]' : ''}`}>{row.errors}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{Math.round(row.avgLatency)}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{fmtNum(row.totalTokens)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-// ── Endpoint table ────────────────────────────────────────────────────────────────────────────────────────────────────
+function EndpointTable({ title, data, isDark }: { title: string; data?: EndpointItem[]; isDark: boolean }) {
+  if (!data || data.length === 0) return (
+    <div className={`bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 transition-colors duration-300`}>
+      <p className={`text-[11px] font-medium uppercase tracking-wider mb-4 ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{title}</p>
+      <NoData isDark={isDark} />
+    </div>
+  );
 
-/**
- * EndpointTable — ranked list of the most-hit API endpoints with a horizontal
- * progress bar scaled to the top endpoint. Also shows token count per endpoint.
- */
-function EndpointTable({ data }: { data: EndpointItem[] }) {
-  if (!data.length) return <NoData />;
-  const maxReq = Math.max(...data.map((d) => d.requests));
   return (
-    <div className="h-full overflow-y-auto pr-1">
-      <div className="flex flex-col gap-2">
-        {data.map((item) => {
-          const pct = maxReq > 0 ? (item.requests / maxReq) * 100 : 0;
-          return (
-            <div key={item.endpoint} className="flex items-center gap-3">
-              <div className="w-32 shrink-0 text-xs font-mono text-[#6B6B6B] truncate">{item.endpoint}</div>
-              <div className="flex-1 h-6 bg-[#F0F0F0] rounded-md overflow-hidden relative">
-                <div className="absolute inset-y-0 left-0 bg-[#6366F1] rounded-md transition-all" style={{ width: `${pct}%` }} />
-                <div className="absolute inset-0 flex items-center justify-between px-2 text-[10px] font-medium text-[#0A0A0A]">
-                  <span>{item.requests.toLocaleString()}</span>
-                  {item.errors > 0 && <span className="text-[#EF4444]">{item.errors} err</span>}
-                </div>
-              </div>
-              <div className="w-24 text-right text-[10px] text-[#9C9C9C] shrink-0">
-                {item.totalTokens > 0 ? fmtNum(item.totalTokens) + ' tok' : '—'}
-              </div>
-            </div>
-          );
-        })}
+    <div className={`bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl overflow-hidden transition-colors duration-300`}>
+      <p className={`px-5 pt-5 text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{title}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm mt-3">
+          <thead>
+            <tr className={`border-b border-[#E8E8EC] dark:border-[#2A2A2A] ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>
+              <th className="px-5 py-2 text-left font-medium">Endpoint</th>
+              <th className="px-5 py-2 text-right font-medium">Req</th>
+              <th className="px-5 py-2 text-right font-medium">Err</th>
+              <th className="px-5 py-2 text-right font-medium">Tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.endpoint} className="border-b border-[#E8E8EC] dark:border-[#2A2A2A] last:border-0 transition-colors">
+                <td className="px-5 py-2.5 font-medium text-[#0A0A0A] dark:text-[#F0F0F0] transition-colors font-mono text-xs">{row.endpoint}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{row.requests.toLocaleString()}</td>
+                <td className={`px-5 py-2.5 text-right tabular-nums ${row.errors > 0 ? 'text-[#EF4444]' : ''}`}>{row.errors}</td>
+                <td className="px-5 py-2.5 text-right tabular-nums">{fmtNum(row.totalTokens)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

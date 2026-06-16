@@ -12,6 +12,7 @@ declare module 'fastify' {
   }
   interface FastifyRequest {
     tokenId?: string;
+    tokenName?: string;
     groupId?: string;
     allowedGroupIds?: string[];
   }

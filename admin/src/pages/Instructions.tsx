@@ -61,7 +61,7 @@ function CodeBlock({ title, code }: { title?: string; code: string }) {
   return (
     <div className="mb-4">
       {title && (
-        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-2">{title}</p>
+        <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-2">{title}</p>
       )}
       <div className="relative">
         <pre className="bg-[#0A0A0A] text-gray-100 p-4 pr-20 rounded-[8px] text-sm font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
@@ -75,8 +75,8 @@ function CodeBlock({ title, code }: { title?: string; code: string }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-[#E8E8EC] rounded-xl p-6 mb-5">
-      <h2 className="font-display font-semibold text-lg text-[#0A0A0A] tracking-tight mb-4">{title}</h2>
+    <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-6 mb-5 transition-colors duration-300">
+      <h2 className="font-display font-semibold text-lg text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight mb-4">{title}</h2>
       {children}
     </div>
   );
@@ -84,7 +84,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6B6B6B] px-1.5 py-0.5 rounded text-xs font-mono">
+    <code className="bg-[#FAFAFA] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] text-[#6B6B6B] dark:text-[#9C9C9C] px-1.5 py-0.5 rounded text-xs font-mono transition-colors duration-300">
       {children}
     </code>
   );
@@ -92,7 +92,7 @@ function InlineCode({ children }: { children: React.ReactNode }) {
 
 function MethodBadge({ method }: { method: string }) {
   return (
-    <span className="text-xs font-medium bg-[#DCFCE7] text-[#10B981] px-2 py-0.5 rounded-[4px]">
+    <span className="text-xs font-medium bg-[#DCFCE7] dark:bg-[#10B981]/15 text-[#10B981] px-2 py-0.5 rounded-[4px] transition-colors duration-300">
       {method}
     </span>
   );
@@ -149,69 +149,69 @@ export default function Instructions() {
   return (
     <div className="max-w-3xl">
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">API Instructions</h1>
-        <p className="text-sm text-[#6B6B6B] mt-1">How to use the FireRoute gateway from your applications</p>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight">API Instructions</h1>
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1">How to use the FireRoute gateway from your applications</p>
       </div>
 
       <Section title="Base URL">
-        <p className="text-sm text-[#6B6B6B] mb-3">All proxy requests go to:</p>
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mb-3">All proxy requests go to:</p>
         {urlLoading ? (
-          <div className="bg-[#FAFAFA] border border-[#E8E8EC] px-3 py-1.5 rounded-[6px] text-sm font-mono text-[#9C9C9C] inline-block">
+          <div className="bg-[#FAFAFA] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] px-3 py-1.5 rounded-[6px] text-sm font-mono text-[#9C9C9C] dark:text-[#6B6B6B] inline-block transition-colors duration-300">
             Loading...
           </div>
         ) : (
-          <code className="bg-[#FAFAFA] border border-[#E8E8EC] text-[#6366F1] px-3 py-1.5 rounded-[6px] text-sm font-mono">
+          <code className="bg-[#FAFAFA] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] text-[#6366F1] px-3 py-1.5 rounded-[6px] text-sm font-mono transition-colors duration-300">
             {gatewayUrl}
           </code>
         )}
       </Section>
 
       <Section title="Authentication">
-        <p className="text-sm text-[#6B6B6B] mb-4">
-          Use a <strong className="font-medium text-[#0A0A0A]">Bearer token</strong> in the{' '}
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mb-4">
+          Use a <strong className="font-medium text-[#0A0A0A] dark:text-[#F0F0F0]">Bearer token</strong> in the{' '}
           <InlineCode>Authorization</InlineCode> header. Generate tokens in the{' '}
-          <strong className="font-medium text-[#0A0A0A]">Tokens</strong> tab.
+          <strong className="font-medium text-[#0A0A0A] dark:text-[#F0F0F0]">Tokens</strong> tab.
         </p>
         <CodeBlock title="Header" code="Authorization: Bearer <your-service-token>" />
       </Section>
 
       <Section title="Available Models">
-        <p className="text-sm text-[#6B6B6B] mb-4">
-          Models are managed from the <strong className="font-medium text-[#0A0A0A]">Models</strong> tab. 
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mb-4">
+          Models are managed from the <strong className="font-medium text-[#0A0A0A] dark:text-[#F0F0F0]">Models</strong> tab. 
           Only active models are available via API. Disabled models are hidden from the model list.
         </p>
         {modelsLoading ? (
-          <p className="text-sm text-[#9C9C9C]">Loading models...</p>
+          <p className="text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">Loading models...</p>
         ) : (
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-[#9C9C9C] mb-2">Chat Models</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-2">Chat Models</p>
               {chatModels.length > 0 ? (
                 <div className="space-y-1">
                   {chatModels.map(m => (
-                    <div key={m.id} className="flex items-center justify-between bg-[#FAFAFA] border border-[#E8E8EC] px-3 py-2 rounded-[6px]">
-                      <code className="text-xs font-mono text-[#6B6B6B]">{m.modelId}</code>
+                    <div key={m.id} className="flex items-center justify-between bg-[#FAFAFA] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] px-3 py-2 rounded-[6px] transition-colors duration-300">
+                      <code className="text-xs font-mono text-[#6B6B6B] dark:text-[#9C9C9C]">{m.modelId}</code>
                       <span className="text-[10px] bg-[#E0E7FF] text-[#4F46E5] px-1.5 py-0.5 rounded">{m.source}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-[#9C9C9C]">No active chat models configured.</p>
+                <p className="text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">No active chat models configured.</p>
               )}
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-[#9C9C9C] mb-2">Image Models</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-2">Image Models</p>
               {imageModels.length > 0 ? (
                 <div className="space-y-1">
                   {imageModels.map(m => (
-                    <div key={m.id} className="flex items-center justify-between bg-[#FAFAFA] border border-[#E8E8EC] px-3 py-2 rounded-[6px]">
-                      <code className="text-xs font-mono text-[#6B6B6B]">{m.modelId}</code>
+                    <div key={m.id} className="flex items-center justify-between bg-[#FAFAFA] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] px-3 py-2 rounded-[6px] transition-colors duration-300">
+                      <code className="text-xs font-mono text-[#6B6B6B] dark:text-[#9C9C9C]">{m.modelId}</code>
                       <span className="text-[10px] bg-[#E0E7FF] text-[#4F46E5] px-1.5 py-0.5 rounded">{m.source}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-[#9C9C9C]">No active image models configured.</p>
+                <p className="text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">No active image models configured.</p>
               )}
             </div>
           </div>
@@ -224,9 +224,9 @@ export default function Instructions() {
             <div key={path}>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <MethodBadge method={method} />
-                <code className="text-sm font-mono text-[#6B6B6B]">{gatewayUrl}{path}</code>
+                <code className="text-sm font-mono text-[#6B6B6B] dark:text-[#9C9C9C]">{gatewayUrl}{path}</code>
               </div>
-              <p className="text-xs text-[#9C9C9C] mb-3">{label}</p>
+              <p className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">{label}</p>
               <CodeBlock title="cURL" code={curl} />
             </div>
           ))}
@@ -234,16 +234,16 @@ export default function Instructions() {
       </Section>
 
       <Section title="Image Generation">
-        <p className="text-sm text-[#6B6B6B] mb-4">
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mb-4">
           Generate images via the OpenAI-compatible <InlineCode>/v1/images/generations</InlineCode> endpoint.
           Image models ({imageModels.length} active): {imageModels.map(m => m.name || m.modelId).join(', ') || 'flux-1-schnell-fp8'}.
           Pass <InlineCode>size</InlineCode> as <InlineCode>width×height</InlineCode> (e.g. <InlineCode>1024x1024</InlineCode>).
         </p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
           <MethodBadge method="POST" />
-          <code className="text-sm font-mono text-[#6B6B6B]">{gatewayUrl}/v1/images/generations</code>
+          <code className="text-sm font-mono text-[#6B6B6B] dark:text-[#9C9C9C]">{gatewayUrl}/v1/images/generations</code>
         </div>
-        <p className="text-xs text-[#9C9C9C] mb-3">OpenAI-compatible image generation</p>
+        <p className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">OpenAI-compatible image generation</p>
 
         <CodeBlock title="cURL" code={imageCurl} />
 
@@ -306,7 +306,7 @@ curl -X POST ${gatewayUrl}/v1/images/generations \\
       </Section>
 
       <Section title="Key Groups">
-        <p className="text-sm text-[#6B6B6B] mb-4">
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mb-4">
           Tokens can be bound to one or more key groups. If a token is bound to a single group,
           requests automatically use that group. If a token is bound to multiple groups, you must pass{' '}
           <InlineCode>group</InlineCode> in the request body to specify which one to use. Tokens with no group

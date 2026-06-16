@@ -41,6 +41,7 @@ export const bearerAuthPlugin = fp(async (server) => {
     }
 
     request.tokenId = dbToken.id;
+    request.tokenName = dbToken.name || dbToken.token;
 
     const allowedGroupIds = dbToken.groups.map((g) => g.groupId);
     request.allowedGroupIds = allowedGroupIds;

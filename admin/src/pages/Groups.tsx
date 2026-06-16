@@ -13,10 +13,10 @@ interface ApiKey {
 }
 
 const INPUT =
-  'border border-[#E8E8EC] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] bg-white ' +
-  'placeholder-[#9C9C9C] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
+  'border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-[6px] px-3.5 py-2.5 text-sm text-[#0A0A0A] dark:text-[#F0F0F0] bg-white dark:bg-[#161616] ' +
+  'placeholder-[#9C9C9C] dark:placeholder-[#6B6B6B] transition-all focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10';
 
-const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C]';
+const TH = 'px-4 py-3 text-left text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B]';
 const TD = 'px-4 py-3 text-sm';
 
 const PRIMARY =
@@ -62,14 +62,14 @@ export default function Groups() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] tracking-tight">Key Groups</h1>
-        <p className="text-sm text-[#6B6B6B] mt-1">Organise keys into groups for round-robin load balancing</p>
+        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight">Key Groups</h1>
+        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1">Organise keys into groups for round-robin load balancing</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-5">
         {/* Create group */}
-        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Create Group</p>
+        <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 transition-colors duration-300">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">Create Group</p>
           <div className="flex flex-col gap-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" className={INPUT} />
             <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className={INPUT} />
@@ -78,8 +78,8 @@ export default function Groups() {
         </div>
 
         {/* Assign key */}
-        <div className="bg-white border border-[#E8E8EC] rounded-xl p-5">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] mb-3">Assign Key to Group</p>
+        <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl p-5 transition-colors duration-300">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-3">Assign Key to Group</p>
           <div className="flex flex-col gap-3">
             <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)} className={`${INPUT} cursor-pointer`}>
               <option value="">Select group…</option>
@@ -101,10 +101,10 @@ export default function Groups() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#E8E8EC] rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#161616] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-xl overflow-hidden transition-colors duration-300">
         <div className="overflow-x-auto">
         <table className="w-full min-w-[640px]">
-          <thead className="bg-[#FAFAFA] border-b border-[#E8E8EC]">
+          <thead className="bg-[#FAFAFA] dark:bg-[#0A0A0A] border-b border-[#E8E8EC] dark:border-[#2A2A2A] transition-colors duration-300">
             <tr>
               <th className={TH}>Group</th>
               <th className={TH}>Keys</th>
@@ -114,31 +114,31 @@ export default function Groups() {
           <tbody className="divide-y divide-[#E8E8EC]">
             {groups.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-10 text-center text-sm text-[#9C9C9C]">
+                <td colSpan={3} className="px-4 py-10 text-center text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">
                   No groups yet. Create one above.
                 </td>
               </tr>
             )}
             {groups.map((g) => (
-              <tr key={g.id} className="hover:bg-[#FAFAFA] transition-colors">
+              <tr key={g.id} className="hover:bg-[#FAFAFA] dark:bg-[#0A0A0A] transition-colors">
                 <td className={TD}>
-                  <p className="font-medium text-[#0A0A0A]">{g.name}</p>
-                  {g.description && <p className="text-xs text-[#9C9C9C] mt-0.5">{g.description}</p>}
+                  <p className="font-medium text-[#0A0A0A] dark:text-[#F0F0F0]">{g.name}</p>
+                  {g.description && <p className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B] mt-0.5">{g.description}</p>}
                 </td>
                 <td className={TD}>
                   <div className="flex flex-wrap gap-1.5">
                     {g.members.length === 0 && (
-                      <span className="text-xs text-[#9C9C9C]">No keys assigned</span>
+                      <span className="text-xs text-[#9C9C9C] dark:text-[#6B6B6B]">No keys assigned</span>
                     )}
                     {g.members.map((m) => (
                       <span
                         key={m.key.id}
-                        className="inline-flex items-center gap-1.5 bg-gray-100 text-[#6B6B6B] px-2.5 py-1 rounded-[4px] text-xs font-medium"
+                        className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-[#6B6B6B] dark:text-[#9C9C9C] px-2.5 py-1 rounded-[4px] text-xs font-medium transition-colors duration-300"
                       >
                         {m.key.name}
                         <button
                           onClick={() => unassign(g.id, m.key.id)}
-                          className="text-[#9C9C9C] hover:text-[#EF4444] transition-colors leading-none"
+                          className="text-[#9C9C9C] dark:text-[#6B6B6B] hover:text-[#EF4444] transition-colors leading-none"
                         >
                           ×
                         </button>

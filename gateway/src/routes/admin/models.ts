@@ -7,18 +7,19 @@ export async function modelsRoutes(server: FastifyInstance) {
   });
 
   server.post('/', { onRequest: server.authenticate }, async (request, reply) => {
-    const { modelId, name, type, source, active } = request.body as {
+    const { modelId, name, type, source, active, anthropicProxy } = request.body as {
       modelId: string;
       name?: string;
       type?: string;
       source?: string;
       active?: boolean;
+      anthropicProxy?: boolean;
     };
     if (!modelId) {
       return reply.status(400).send({ error: 'modelId is required' });
     }
     try {
-      return ModelManager.createModel({ modelId, name, type, source, active });
+      return ModelManager.createModel({ modelId, name, type, source, active, anthropicProxy });
     } catch (err: any) {
       if (err.code === 'P2002') {
         return reply.status(409).send({ error: 'Model already exists' });
@@ -29,11 +30,12 @@ export async function modelsRoutes(server: FastifyInstance) {
 
   server.put('/:id', { onRequest: server.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { name, type, active, modelId } = request.body as {
+    const { name, type, active, modelId, anthropicProxy } = request.body as {
       name?: string;
       type?: string;
       active?: boolean;
       modelId?: string;
+      anthropicProxy?: boolean;
     };
     // If id is missing or 'null', create a local record (used for toggling upstream models)
     if (!id || id === 'null' || id === 'undefined') {
@@ -46,9 +48,10 @@ export async function modelsRoutes(server: FastifyInstance) {
         type,
         source: 'upstream',
         active: active ?? true,
+        anthropicProxy: anthropicProxy ?? true,
       });
     }
-    return ModelManager.updateModel(id, { name, type, active });
+    return ModelManager.updateModel(id, { name, type, active, anthropicProxy });
   });
 
   server.get('/:id', { onRequest: server.authenticate }, async (request) => {

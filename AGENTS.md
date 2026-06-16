@@ -174,8 +174,8 @@ Copy `.env.example` → `.env` and adjust:
   - Admin API: `/api/v1/admin/*`
   - Proxy: `/v1/*` (OpenAI/Anthropic/Response/Wildcard)
 - **Error handling**: centralized via `plugins/error-handler.js`.
-- **Proxy logic**: `handleProxy` in `routes/proxy/utils.ts` handles key rotation, SSE streaming, binary passthrough, and stats logging.
-- **TypeScript imports**: use `.js` extensions in imports (e.g., `import { config } from './config.js'`), even for `.ts` files, because the project compiles to ESM.
+- Proxy logic: `handleProxy` in `routes/proxy/utils.ts` handles key rotation, SSE streaming, binary passthrough, and stats logging.
+- **StatsService** (`services/stats-service.ts`): `byKey` analytics query returns ALL keys with traffic, sorted alphabetically by key name (`COALESCE(ak.name, r.key_id) ASC`, no LIMIT). Other breakdowns (`byGroup`, `byToken`, `byModel`, `topEndpoints`) keep `LIMIT 10` sorted by traffic.
 
 ### Admin (React / TypeScript)
 - **Vite** for build tooling and dev server.
@@ -184,6 +184,7 @@ Copy `.env.example` → `.env` and adjust:
 - **Recharts** for analytics charts on Dashboard.
 - **Axios** for HTTP client.
 - **LocalStorage** for JWT token persistence (`token` key).
+- **Dark theme** supported via Tailwind `darkMode: 'class'` strategy. Toggle button in header, persisted to `localStorage` under `fireroute-theme`. Theme state managed by `useTheme` hook in `src/hooks/useTheme.ts`.
 - **Design system** (from `DESIGN.md`):
   - Primary: `#6366F1` (indigo), Success: `#10B981`, Warning: `#F59E0B`, Error: `#EF4444`
   - Fonts: General Sans (display), DM Sans (body), JetBrains Mono (code)

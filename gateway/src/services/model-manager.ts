@@ -49,6 +49,7 @@ export interface MergedModel {
   name: string | null;
   type: string;
   active: boolean;
+  anthropicProxy: boolean;
   source: 'upstream' | 'manual';
   upstream?: UpstreamModel;
 }
@@ -74,6 +75,7 @@ export const ModelManager = {
         name: l?.name ?? u.id.split('/').pop() ?? u.id,
         type: l?.type ?? inferModelType(u),
         active: l?.active ?? true,
+        anthropicProxy: l?.anthropicProxy ?? true,
         source: (l?.source as 'upstream' | 'manual') ?? 'upstream',
         upstream: u,
       });
@@ -88,6 +90,7 @@ export const ModelManager = {
         name: l.name,
         type: l.type,
         active: l.active,
+        anthropicProxy: l.anthropicProxy,
         source: l.source as 'upstream' | 'manual',
       });
     }
@@ -99,7 +102,7 @@ export const ModelManager = {
     return prisma.model.findUnique({ where: { id } });
   },
 
-  async createModel(data: { modelId: string; name?: string; type?: string; source?: string; active?: boolean }) {
+  async createModel(data: { modelId: string; name?: string; type?: string; source?: string; active?: boolean; anthropicProxy?: boolean }) {
     return prisma.model.create({
       data: {
         modelId: data.modelId,
@@ -107,17 +110,19 @@ export const ModelManager = {
         type: data.type || 'chat',
         source: data.source || 'manual',
         active: data.active ?? true,
+        anthropicProxy: data.anthropicProxy ?? true,
       },
     });
   },
 
-  async updateModel(id: string, data: { name?: string; type?: string; active?: boolean }) {
+  async updateModel(id: string, data: { name?: string; type?: string; active?: boolean; anthropicProxy?: boolean }) {
     return prisma.model.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name || null }),
         ...(data.type !== undefined && { type: data.type }),
         ...(data.active !== undefined && { active: data.active }),
+        ...(data.anthropicProxy !== undefined && { anthropicProxy: data.anthropicProxy }),
       },
     });
   },
