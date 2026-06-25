@@ -35,61 +35,18 @@ export async function openaiRoutes(server: FastifyInstance) {
     const requestBody = request.body ? JSON.stringify(request.body) : undefined;
 
     try {
-      const key = await KeyManager.getNextKey(groupId);
-      if (!key) {
-        await StatsService.log({
-          tokenId: request.tokenId,
-          groupId,
-          endpoint: '/models',
-          status: 503,
-          latencyMs: Date.now() - start,
-          error: 'No available API keys',
-          requestBody,
-        });
-        return reply.status(503).send({ error: 'No available API keys' });
-      }
+      // Serve only active models from the local DB (managed in admin Models page)
+      const activeModels = await ModelManager.getActiveModels();
 
-      const upstreamRes = await fetch(`${config.FIREWORKS_BASE_URL}/models`, {
-        headers: { Authorization: `Bearer ${key.key}` },
-      });
-
-      if (!upstreamRes.ok) {
-        const body = await upstreamRes.text();
-        await StatsService.log({
-          tokenId: request.tokenId,
-          keyId: key.id,
-          groupId,
-          endpoint: '/models',
-          status: upstreamRes.status,
-          latencyMs: Date.now() - start,
-          error: body,
-          requestBody,
-        });
-        return reply.status(upstreamRes.status).send({ error: 'Fireworks API error', details: body });
-      }
-
-      const upstreamData = (await upstreamRes.json()) as any;
-      const inactiveIds = await ModelManager.getInactiveModelIds();
-      const manualModels = await ModelManager.getManualModels();
-
-      // Filter upstream: remove inactive models; add manual ones if missing
-      const upstreamList = (upstreamData.data || upstreamData.models || upstreamData || []).filter(
-        (m: any) => !inactiveIds.has(m.id)
-      );
-
-      const upstreamIds = new Set(upstreamList.map((m: any) => m.id));
-      const extraManual = manualModels.filter((m) => !upstreamIds.has(m.modelId)).map((m) => ({
+      const data = activeModels.map((m) => ({
         id: m.modelId,
         object: 'model',
         created: Math.floor(new Date(m.createdAt).getTime() / 1000),
-        owned_by: 'manual',
+        owned_by: m.source,
       }));
-
-      const mergedList = [...upstreamList, ...extraManual];
 
       await StatsService.log({
         tokenId: request.tokenId,
-        keyId: key.id,
         groupId,
         endpoint: '/models',
         status: 200,
@@ -97,7 +54,7 @@ export async function openaiRoutes(server: FastifyInstance) {
         requestBody,
       });
 
-      return reply.send({ object: 'list', data: mergedList });
+      return reply.send({ object: 'list', data });
     } catch (err) {
       const latency = Date.now() - start;
       await StatsService.log({
@@ -127,7 +84,7 @@ export async function openaiRoutes(server: FastifyInstance) {
     const kontext = isKontextModel(model);
 
     try {
-      const key = await KeyManager.getNextKey(groupId);
+      const key = await KeyManager.getNextKey(groupId, request.tokenId);
       if (!key) {
         await StatsService.log({
           tokenId: request.tokenId,

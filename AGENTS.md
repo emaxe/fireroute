@@ -16,7 +16,8 @@
 - **Key rotation** per group with round-robin selection
 - **Bearer token authentication** for proxy routes
 - **JWT-based admin authentication** (`/api/v1/admin/auth`)
-- **Admin management** of API keys, groups, users, tokens, and request logs
+- **Admin management** of API keys, groups, users, tokens, request logs, and model overrides
+- **Model override / rewrite** — transparently replace the `model` field in incoming requests before forwarding to the upstream provider (configured in Settings)
 - **Real-time analytics dashboard** with Recharts
 - **Binary & SSE passthrough** for images, audio, video, and streaming responses
 
@@ -64,9 +65,9 @@ fireRoute/
 │   │   ├── config.ts       # Zod-validated env configuration
 │   │   ├── plugins/        # error-handler, jwt-auth, bearer-auth
 │   │   ├── routes/
-│   │   │   ├── admin/      # auth, keys, groups, users, tokens, stats
+│   │   │   ├── admin/      # auth, keys, groups, users, tokens, stats, model-overrides
 │   │   │   └── proxy/      # openai, anthropic, responses, wildcard + utils
-│   │   ├── services/       # key-manager, proxy-client, stats-service, token-manager, user-manager
+│   │   ├── services/       # key-manager, proxy-client, stats-service, token-manager, user-manager, model-override-manager
 │   │   └── types/
 │   └── tests/
 │

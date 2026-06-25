@@ -18,6 +18,7 @@ interface LogItem {
   groupId?: string;
   tokenId?: string;
   keyId?: string;
+  requestBody?: string;
 }
 
 interface LogsResponse {
@@ -70,7 +71,20 @@ const INPUT =
 // ── Detail Modal ───────────────────────────────────────────────────────────────
 
 function DetailModal({ log, onClose }: { log: LogItem; onClose: () => void }) {
-  if (!log) return null;
+  const [fullLog, setFullLog] = useState<LogItem | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    API.get(`/stats/logs/${log.id}`)
+      .then((res) => setFullLog(res.data))
+      .catch(() => setFullLog(log))
+      .finally(() => setLoading(false));
+  }, [log.id]);
+
+  const display = fullLog || log;
+  if (!display) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -80,60 +94,71 @@ function DetailModal({ log, onClose }: { log: LogItem; onClose: () => void }) {
           <button onClick={onClose} className="text-[#9C9C9C] dark:text-[#6B6B6B] hover:text-[#0A0A0A] dark:text-[#F0F0F0] transition-colors text-2xl leading-none">&times;</button>
         </div>
         <div className="px-6 py-5 space-y-4">
+          {loading && (
+            <div className="text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">Loading details...</div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">ID</p>
-              <p className="font-mono text-sm text-[#6B6B6B] dark:text-[#9C9C9C] break-all">{log.id}</p>
+              <p className="font-mono text-sm text-[#6B6B6B] dark:text-[#9C9C9C] break-all">{display.id}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Time</p>
-              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{new Date(log.createdAt).toLocaleString('ru-RU')}</p>
+              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{new Date(display.createdAt).toLocaleString('ru-RU')}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Endpoint</p>
-              <p className="font-mono text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{log.endpoint}</p>
+              <p className="font-mono text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{display.endpoint}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Status</p>
-              <p><StatusBadge status={log.status} /></p>
+              <p><StatusBadge status={display.status} /></p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Latency</p>
-              <p className="font-mono text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{fmtDuration(log.latencyMs)}</p>
+              <p className="font-mono text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{fmtDuration(display.latencyMs)}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">API Key</p>
-              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{log.key?.name || log.keyId || '—'}</p>
+              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{display.key?.name || display.keyId || '—'}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Token</p>
-              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{log.token?.name || log.tokenId || '—'}</p>
+              <p className="text-sm text-[#0A0A0A] dark:text-[#F0F0F0]">{display.token?.name || display.tokenId || '—'}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Prompt Tokens</p>
-              <p className="font-mono text-sm text-[#6366F1]">{fmtTokens(log.promptTokens)}</p>
+              <p className="font-mono text-sm text-[#6366F1]">{fmtTokens(display.promptTokens)}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Completion Tokens</p>
-              <p className="font-mono text-sm text-[#10B981]">{fmtTokens(log.completionTokens)}</p>
+              <p className="font-mono text-sm text-[#10B981]">{fmtTokens(display.completionTokens)}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Total Tokens</p>
-              <p className="font-mono text-sm text-[#8B5CF6]">{fmtTokens(log.totalTokens)}</p>
+              <p className="font-mono text-sm text-[#8B5CF6]">{fmtTokens(display.totalTokens)}</p>
             </div>
           </div>
-          {log.error && (
+          {display.error && (
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Error</p>
               <div className="bg-[#FEF2F2] dark:bg-red-500/10 border border-[#FECACA] dark:border-red-500/20 rounded-lg px-4 py-3 text-sm text-[#EF4444] font-mono whitespace-pre-wrap break-all transition-colors duration-300">
-                {log.error}
+                {display.error}
               </div>
+            </div>
+          )}
+          {display.requestBody && (
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-[#9C9C9C] dark:text-[#6B6B6B] mb-1">Request Body</p>
+              <pre className="bg-[#F5F5F5] dark:bg-[#0A0A0A] border border-[#E8E8EC] dark:border-[#2A2A2A] rounded-lg px-4 py-3 text-xs font-mono text-[#0A0A0A] dark:text-[#F0F0F0] whitespace-pre-wrap break-all max-h-64 overflow-y-auto transition-colors duration-300">
+                {(() => { try { return JSON.stringify(JSON.parse(display.requestBody), null, 2); } catch { return display.requestBody; } })()}
+              </pre>
             </div>
           )}
         </div>
@@ -162,6 +187,8 @@ export default function Logs() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<LogItem | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Dropdowns
   const [keys, setKeys] = useState<DropdownOption[]>([]);
@@ -169,7 +196,7 @@ export default function Logs() {
   const [tokens, setTokens] = useState<DropdownOption[]>([]);
   const [dropLoading, setDropLoading] = useState(true);
 
-  const abortRef = useRef<AbortController | null>(null);
+  const latestReqIdRef = useRef(0);
 
   // Load dropdowns once
   useEffect(() => {
@@ -185,12 +212,10 @@ export default function Logs() {
     });
   }, []);
 
-  const fetchLogs = useCallback(() => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const fetchLogs = useCallback((showLoading = true) => {
+    const reqId = ++latestReqIdRef.current;
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     const params: Record<string, string> = {
       limit: String(pageSize),
       offset: String(offset),
@@ -204,19 +229,33 @@ export default function Logs() {
     if (tokenId) params.tokenId = tokenId;
     if (search) params.search = search;
 
-    API.get('/stats/logs', { params, signal: controller.signal })
+    API.get('/stats/logs', { params })
       .then((res) => {
+        if (reqId !== latestReqIdRef.current) return; // stale response — ignore
         const payload = res.data as LogsResponse;
         setLogs(payload.data || []);
         setTotal(payload.total || 0);
+        setLastUpdated(new Date());
       })
-      .catch((err) => { if (err.name !== 'CanceledError') console.error(err); })
-      .finally(() => setLoading(false));
+      .catch((err) => { console.error(err); })
+      .finally(() => {
+        if (showLoading && reqId === latestReqIdRef.current) {
+          setLoading(false);
+        }
+      });
   }, [endpoint, statusFilter, keyId, groupId, tokenId, search, sortBy, sortOrder, pageSize, offset]);
 
+  // Fetch on parameter changes (filters, pagination, sorting)
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(true);
   }, [fetchLogs]);
+
+  // Auto-refresh every 5 s, but ONLY on the first page (offset === 0)
+  useEffect(() => {
+    if (!autoRefresh || offset !== 0) return;
+    const id = setInterval(() => fetchLogs(false), 5000);
+    return () => clearInterval(id);
+  }, [autoRefresh, offset, fetchLogs]);
 
   // Reset pagination when filters change
   const changeFilter = (setter: (v: string) => void) => (v: string) => {
@@ -243,9 +282,30 @@ export default function Logs() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight">Request Logs</h1>
-        <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1">Detailed gateway proxy requests with filtering and token usage</p>
+      <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-display font-semibold text-xl md:text-[28px] text-[#0A0A0A] dark:text-[#F0F0F0] tracking-tight">Request Logs</h1>
+          <p className="text-sm text-[#6B6B6B] dark:text-[#9C9C9C] mt-1">Detailed gateway proxy requests with filtering and token usage</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setAutoRefresh(v => !v)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-xs font-medium border transition-colors ${
+              autoRefresh
+                ? 'bg-[#DCFCE7] dark:bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30'
+                : 'bg-white dark:bg-[#161616] text-[#9C9C9C] dark:text-[#6B6B6B] border-[#E8E8EC] dark:border-[#2A2A2A] hover:text-[#0A0A0A] dark:text-[#F0F0F0]'
+            }`}
+            title={autoRefresh ? 'Auto-refresh ON (5 s)' : 'Auto-refresh OFF'}
+          >
+            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-[#10B981] animate-pulse' : 'bg-[#9C9C9C] dark:bg-[#6B6B6B]'}`} />
+            {autoRefresh ? 'Live' : 'Paused'}
+          </button>
+          {lastUpdated && (
+            <span className="text-[11px] text-[#9C9C9C] dark:text-[#6B6B6B]">
+              Updated {lastUpdated.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -342,7 +402,7 @@ export default function Logs() {
                 <th className={TH}></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E8E8EC]">
+            <tbody className="divide-y divide-[#E8E8EC] dark:divide-[#2A2A2A]">
               {loading && logs.length === 0 && (
                 <tr>
                   <td colSpan={11} className="px-4 py-12 text-center text-sm text-[#9C9C9C] dark:text-[#6B6B6B]">

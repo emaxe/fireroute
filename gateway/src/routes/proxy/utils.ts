@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { KeyManager } from '../../services/key-manager.js';
 import { StatsService } from '../../services/stats-service.js';
 import { proxyToFireworks } from '../../services/proxy-client.js';
+import { ModelOverrideManager } from '../../services/model-override-manager.js';
 
 /**
  * Parse an accumulated SSE text buffer and extract token usage.
@@ -57,6 +58,8 @@ export function parseSSEUsage(sseText: string): {
  *      and persist them so the dashboard can show token consumption analytics.
  *   6. For SSE streaming, buffer the raw text while proxying, then parse the final
  *      event chunks for usage so token analytics work for streaming requests too.
+ *   7. Transparently apply model overrides configured in the admin panel before
+ *      forwarding the request to the upstream provider.
  */
 export async function handleProxy(
   request: FastifyRequest,
@@ -65,14 +68,23 @@ export async function handleProxy(
 ) {
   const start = Date.now();
   const groupId = request.groupId || 'default';
-  const model = (request.body as any)?.model as string | undefined;
-  const requestBody = request.method !== 'GET' && request.body ? JSON.stringify(request.body) : undefined;
+  const originalModel = (request.body as any)?.model as string | undefined;
+  const overriddenModel = await ModelOverrideManager.applyOverride(originalModel);
+
+  // Build a mutable body with the overridden model so upstream sees the replacement
+  let proxyBody = request.body;
+  if (overriddenModel !== undefined && overriddenModel !== originalModel && proxyBody && typeof proxyBody === 'object') {
+    proxyBody = { ...proxyBody, model: overriddenModel };
+  }
+
+  const model = originalModel; // log the original model for analytics traceability
+  const requestBody = request.method !== 'GET' && proxyBody ? JSON.stringify(proxyBody) : undefined;
 
   // Retry loop: if a key returns a "suspended" error, automatically
   // suspend it and try the next active key in the same group.
   // Only return an error to the user when no active keys remain.
   while (true) {
-    const key = await KeyManager.getNextKey(groupId);
+    const key = await KeyManager.getNextKey(groupId, request.tokenId);
 
     if (!key) {
       await StatsService.log({
@@ -94,7 +106,7 @@ export async function handleProxy(
       const isGet = request.method === 'GET';
       const response = await proxyToFireworks(
         endpoint,
-        isGet ? undefined : request.body,
+        isGet ? undefined : proxyBody,
         key.key,
         {
           Accept: request.headers['accept'] || 'application/json',

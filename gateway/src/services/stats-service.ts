@@ -93,7 +93,22 @@ export const StatsService = {
         orderBy,
         skip: offset,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          tokenId: true,
+          keyId: true,
+          groupId: true,
+          tokenName: true,
+          keyName: true,
+          endpoint: true,
+          status: true,
+          latencyMs: true,
+          promptTokens: true,
+          completionTokens: true,
+          totalTokens: true,
+          error: true,
+          model: true,
+          createdAt: true,
           token: { select: { name: true } },
           key: { select: { name: true } },
         },
@@ -102,6 +117,16 @@ export const StatsService = {
     ]);
 
     return { data, total, limit, offset };
+  },
+
+  async getLogById(id: string) {
+    return prisma.requestLog.findUnique({
+      where: { id },
+      include: {
+        token: { select: { name: true } },
+        key: { select: { name: true } },
+      },
+    });
   },
 
   async getAnalytics(params: {
@@ -171,11 +196,12 @@ export const StatsService = {
     // ── byKey (only rows where key_id IS NOT NULL) ─────────────────────────────────────────────
     const keyConditions = [...baseConditions('r'), Prisma.sql`r.key_id IS NOT NULL`];
     const byKeyRows = await prisma.$queryRaw<
-      { id: string; name: string; requests: bigint; errors: bigint; avg_latency: number; prompt_tokens: bigint; completion_tokens: bigint; total_tokens: bigint }[]
+      { id: string; name: string; suspended: boolean | null; requests: bigint; errors: bigint; avg_latency: number; prompt_tokens: bigint; completion_tokens: bigint; total_tokens: bigint }[]
     >`
       SELECT
         r.key_id                                              AS id,
         COALESCE(ak.name, r.key_id)                          AS name,
+        COALESCE(ak.suspended, false)                        AS suspended,
         COUNT(*)                                              AS requests,
         COUNT(CASE WHEN r.status >= 400 THEN 1 END)          AS errors,
         COALESCE(AVG(r.latency_ms)::float8, 0)               AS avg_latency,
@@ -185,7 +211,7 @@ export const StatsService = {
       FROM request_logs r
       LEFT JOIN api_keys ak ON ak.id = r.key_id
       ${Prisma.join(keyConditions, ' AND ', 'WHERE ', '')}
-      GROUP BY r.key_id, ak.name, ak.created_at
+      GROUP BY r.key_id, ak.name, ak.suspended, ak.created_at
       ORDER BY COALESCE(ak.name, r.key_id) ASC
     `;
 
@@ -295,7 +321,7 @@ export const StatsService = {
         totalTokens:      n(r.total_tokens),
       })),
       byKey: byKeyRows.map((r) => ({
-        id: r.id, name: r.name,
+        id: r.id, name: r.name, suspended: r.suspended ?? false,
         requests: n(r.requests), errors: n(r.errors),
         avgLatency: Math.round(r.avg_latency),
         promptTokens:     n(r.prompt_tokens),

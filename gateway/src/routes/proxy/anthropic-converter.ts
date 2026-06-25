@@ -6,8 +6,9 @@ import { randomUUID } from 'crypto';
  * Anthropic → OpenAI differences handled:
  *  - system[] blocks → system message in messages[]
  *  - messages[].content[] arrays → string content
- *  - tools[].type="web_search_..." → tools[].type="function" with function wrapper
- *  - tool_choice.type="tool" → tool_choice.type="function"
+ *  - tools[].type="web_search_..." and other built-in Anthropic tools are stripped
+ *    because Fireworks/Qwen doesn't support them; only custom tools with input_schema are kept
+ *  - tool_choice referencing a stripped tool → reset to 'auto'
  *  - metadata / output_config removed (Anthropic-only)
  */
 export function convertAnthropicToOpenAI(body: any): any {
@@ -48,6 +49,23 @@ export function convertAnthropicToOpenAI(body: any): any {
           else if (block.type === 'image' && block.source) {
             blocks.push(block);
           }
+          // Convert Anthropic tool_use and tool_result blocks to plain text
+          // so OpenAI-compatible upstream models can still consume the context
+          else if (block.type === 'tool_use') {
+            blocks.push({
+              type: 'text',
+              text: `[Tool use: ${block.name || 'unknown'}]\n${typeof block.input === 'object' ? JSON.stringify(block.input, null, 2) : String(block.input ?? '')}`,
+            });
+          }
+          else if (block.type === 'tool_result') {
+            const content = typeof block.content === 'string'
+              ? block.content
+              : JSON.stringify(block.content, null, 2);
+            blocks.push({
+              type: 'text',
+              text: `[Tool result: ${block.tool_use_id || 'unknown'}]\n${content}`,
+            });
+          }
         }
         // Keep structured content if original was structured; fallback to empty string
         converted.content = blocks.length > 0 ? blocks : '';
@@ -61,8 +79,22 @@ export function convertAnthropicToOpenAI(body: any): any {
   }
 
   // --- tools ---
-  if (Array.isArray(body.tools)) {
-    result.tools = body.tools.map((tool: any) => ({
+  // Strip Anthropic built-in tools (web_search, computer, etc.) that don't have input_schema.
+  // Fireworks/Qwen only supports custom function tools with a JSON schema.
+  const supportedTools = Array.isArray(body.tools)
+    ? body.tools.filter((tool: any) => {
+        // A supported tool must have an input schema (custom tool) or already be in OpenAI function shape
+        return !!(
+          tool.input_schema ||
+          tool.parameters ||
+          tool.function?.parameters ||
+          (tool.type === 'function' && tool.function)
+        );
+      })
+    : [];
+
+  if (supportedTools.length > 0) {
+    result.tools = supportedTools.map((tool: any) => ({
       type: 'function',
       function: {
         name: tool.name || tool.function?.name || 'unknown',
@@ -78,7 +110,12 @@ export function convertAnthropicToOpenAI(body: any): any {
 
   // --- tool_choice ---
   if (body.tool_choice) {
-    if (body.tool_choice.type === 'tool') {
+    const chosenName = body.tool_choice.name;
+    const chosenExists = chosenName
+      ? supportedTools.some((t: any) => (t.name || t.function?.name) === chosenName)
+      : true;
+
+    if (body.tool_choice.type === 'tool' && chosenExists) {
       result.tool_choice = {
         type: 'function',
         function: { name: body.tool_choice.name },
@@ -87,6 +124,9 @@ export function convertAnthropicToOpenAI(body: any): any {
       result.tool_choice = 'auto';
     } else if (body.tool_choice.type === 'any') {
       result.tool_choice = 'auto'; // OpenAI doesn't have 'any', map to auto
+    } else if (body.tool_choice.type === 'tool' && !chosenExists) {
+      // Referenced tool was stripped (e.g. web_search), fall back to auto
+      result.tool_choice = 'auto';
     } else {
       result.tool_choice = body.tool_choice;
     }

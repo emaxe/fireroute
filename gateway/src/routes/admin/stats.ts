@@ -32,6 +32,13 @@ export async function statsRoutes(server: FastifyInstance) {
     });
   });
 
+  server.get('/logs/:id', { onRequest: server.authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const log = await StatsService.getLogById(id);
+    if (!log) return reply.status(404).send({ error: 'Not found' });
+    return log;
+  });
+
   server.get('/analytics', { onRequest: server.authenticate }, async (request, reply) => {
     const { range = '7d', keyId, groupId, tokenId } = request.query as {
       range?: string;

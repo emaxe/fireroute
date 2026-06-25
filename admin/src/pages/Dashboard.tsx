@@ -25,6 +25,7 @@ interface TimeseriesBucket {
 interface BreakdownItem {
   id: string;
   name: string;
+  suspended?: boolean;
   requests: number;
   errors: number;
   avgLatency: number;
@@ -156,6 +157,20 @@ function MiniCard({ label, value, color, icon, sub, isDark }: {
       <p className={`font-display font-bold text-3xl tracking-tight ${color}`}>{value}</p>
       {sub && <p className={`text-xs mt-1 ${isDark ? 'text-[#6B6B6B]' : 'text-[#9C9C9C]'}`}>{sub}</p>}
     </div>
+  );
+}
+
+// ── Custom YAxis tick for suspended keys ────────────────────────────────────────────────────────────────────
+
+function SuspendedKeyTick({ x, y, payload, index, data, isDark }: any) {
+  if (payload == null || data == null) return null;
+  const item = data[index];
+  const isSuspended = item?.suspended ?? false;
+  const fill = isSuspended ? '#EF4444' : isDark ? '#F0F0F0' : '#0A0A0A';
+  return (
+    <text x={x} y={y} dy={4} textAnchor="end" fill={fill} fontSize={11} fontWeight={isSuspended ? 700 : 400}>
+      {payload.value}
+    </text>
   );
 }
 
@@ -348,7 +363,7 @@ export default function Dashboard() {
 
         <select value={tokenId} onChange={(e) => setTokenId(e.target.value)} disabled={dropLoading} className={SELECT}>
           <option value="">All Tokens</option>
-          {tokens.map((t) => <option key={t.id} value={t.token}>{t.name}</option>)}
+          {tokens.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </div>
 
@@ -418,7 +433,7 @@ export default function Dashboard() {
               <BarChart data={data.byKey} layout="vertical" margin={{ left: 20, right: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: chartAxisColor }} tickFormatter={fmtNum} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: chartAxisColor }} width={140} interval={0} />
+                <YAxis dataKey="name" type="category" tick={(props: any) => <SuspendedKeyTick {...props} data={data.byKey} isDark={isDark} />} width={140} interval={0} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="promptTokens"     fill={C.indigo}  name="Prompt"     stackId="a" radius={[2, 0, 0, 2]} />
@@ -599,7 +614,10 @@ function BreakdownTable({ title, data, isDark }: { title: string; data?: Breakdo
           <tbody>
             {data.map((row) => (
               <tr key={row.id} className="border-b border-[#E8E8EC] dark:border-[#2A2A2A] last:border-0 transition-colors">
-                <td className="px-5 py-2.5 font-medium text-[#0A0A0A] dark:text-[#F0F0F0] transition-colors">{row.name}</td>
+                <td className={`px-5 py-2.5 font-medium transition-colors ${row.suspended ? 'text-[#EF4444]' : 'text-[#0A0A0A] dark:text-[#F0F0F0]'}`}>
+                  {row.name}
+                  {row.suspended && <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wider text-[#EF4444]/70">(Suspended)</span>}
+                </td>
                 <td className="px-5 py-2.5 text-right tabular-nums">{row.requests.toLocaleString()}</td>
                 <td className={`px-5 py-2.5 text-right tabular-nums ${row.errors > 0 ? 'text-[#EF4444]' : ''}`}>{row.errors}</td>
                 <td className="px-5 py-2.5 text-right tabular-nums">{Math.round(row.avgLatency)}</td>

@@ -86,6 +86,7 @@ model KeyGroup {
   members      GroupMember[]
   tokenGroups  TokenGroup[]
   currentIndex Int           @default(0) @map("current_index")
+  rotationMode String        @default("round_robin") @map("rotation_mode")
 
   @@map("key_groups")
 }
@@ -136,4 +137,26 @@ model RequestLog {
   key   ApiKey?       @relation(fields: [keyId], references: [id])
 
   @@map("request_logs")
+}
+
+model GatewayConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("gateway_configs")
+}
+
+model ModelOverride {
+  id          String   @id @default(uuid())
+  fromModel   String   @map("from_model")
+  toModel     String   @map("to_model")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([fromModel])
+  @@map("model_overrides")
 }

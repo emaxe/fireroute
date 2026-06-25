@@ -14,6 +14,16 @@ export async function groupsRoutes(server: FastifyInstance) {
     return KeyManager.createGroup({ name, description });
   });
 
+  server.patch('/:id', { onRequest: server.authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { name, description, rotationMode } = request.body as { name?: string; description?: string; rotationMode?: string };
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (rotationMode !== undefined) updateData.rotationMode = rotationMode;
+    return KeyManager.updateGroup(id, updateData);
+  });
+
   server.delete('/:id', { onRequest: server.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     await KeyManager.deleteGroup(id);

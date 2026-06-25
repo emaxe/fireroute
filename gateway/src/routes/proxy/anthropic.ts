@@ -11,6 +11,7 @@ import {
   sseEvent,
 } from './anthropic-converter.js';
 import { randomUUID } from 'crypto';
+import { AnthropicEnricher } from '../../services/anthropic-enricher.js';
 
 const prisma = new PrismaClient();
 
@@ -19,8 +20,14 @@ export async function anthropicRoutes(server: FastifyInstance) {
     const start = Date.now();
     const groupId = request.groupId || 'default';
     const body = request.body as any;
-    const modelId = body?.model as string | undefined;
-    const requestBodyStr = request.body ? JSON.stringify(body) : undefined;
+
+    // Enrich the body locally: execute built-in tools (e.g. web_search_preview)
+    // and inject their results as tool_result blocks so upstream never sees
+    // unsupported tools.
+    const enrichedBody = await AnthropicEnricher.enrich(body);
+
+    const modelId = enrichedBody?.model as string | undefined;
+    const requestBodyStr = enrichedBody ? JSON.stringify(enrichedBody) : undefined;
 
     // Check whether this model should be proxied with Anthropic format passthrough
     // or converted to OpenAI format (default: convert).
@@ -39,7 +46,7 @@ export async function anthropicRoutes(server: FastifyInstance) {
     if (!anthropicProxy) {
       const endpoint = '/messages';
       while (true) {
-        const key = await KeyManager.getNextKey(groupId);
+        const key = await KeyManager.getNextKey(groupId, request.tokenId);
         if (!key) {
           await StatsService.log({
             tokenId: request.tokenId,
@@ -58,7 +65,7 @@ export async function anthropicRoutes(server: FastifyInstance) {
         try {
           const response = await proxyToFireworks(
             endpoint,
-            request.body,
+            enrichedBody,
             key.key,
             { Accept: request.headers['accept'] || 'application/json' },
             'POST'
@@ -198,11 +205,11 @@ export async function anthropicRoutes(server: FastifyInstance) {
     }
 
     // ---- Anthropic → OpenAI conversion ----
-    const openaiBody = convertAnthropicToOpenAI(body);
+    const openaiBody = convertAnthropicToOpenAI(enrichedBody);
     const endpoint = '/chat/completions';
 
     while (true) {
-      const key = await KeyManager.getNextKey(groupId);
+      const key = await KeyManager.getNextKey(groupId, request.tokenId);
       if (!key) {
         await StatsService.log({
           tokenId: request.tokenId,
