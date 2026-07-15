@@ -9,6 +9,21 @@ import { GatewayConfigService } from './gateway-config-service.js';
 
 const WEB_SEARCH_ENABLED_KEY = 'web_search_preview_enabled';
 
+/** Built-in Anthropic web search tool identifiers. */
+const BUILT_IN_WEB_SEARCH_TYPES = ['web_search_preview', 'web_search_20250305'];
+const BUILT_IN_WEB_SEARCH_NAMES = ['web_search_preview', 'web_search'];
+
+function isBuiltInWebSearchTool(tool: any): boolean {
+  if (!tool || typeof tool !== 'object') return false;
+  const type = tool.type;
+  const name = tool.name;
+  if (typeof type === 'string' && type.startsWith('web_search')) return true;
+  return (
+    BUILT_IN_WEB_SEARCH_TYPES.includes(type) ||
+    BUILT_IN_WEB_SEARCH_NAMES.includes(name)
+  );
+}
+
 interface ToolUseBlock {
   id: string;
   name: string;
@@ -27,29 +42,67 @@ export const AnthropicEnricher = {
     const enabled = await GatewayConfigService.getBoolean(WEB_SEARCH_ENABLED_KEY, false);
     if (!enabled) return body;
 
+    // Check whether any built-in web search tool is present in the tools list
+    const hasBuiltInWebSearch = Array.isArray(body.tools) && body.tools.some(isBuiltInWebSearchTool);
+    if (!hasBuiltInWebSearch) return body;
+
     const toolCalls = this.extractWebSearchToolCalls(body.messages);
-    if (toolCalls.length === 0) return body;
+    let enrichedMessages = body.messages;
 
-    // Execute searches in parallel
-    const searchResults = await Promise.all(
-      toolCalls.map(async (tc) => {
-        const query = tc.input?.query || tc.input?.search_query || '';
-        const results = await WebSearchService.search(query);
-        return { toolUseId: tc.id, results };
-      })
-    );
+    if (toolCalls.length > 0) {
+      // Execute searches in parallel
+      const searchResults = await Promise.all(
+        toolCalls.map(async (tc) => {
+          const query = tc.input?.query || tc.input?.search_query || '';
+          const results = await WebSearchService.search(query);
+          return { toolUseId: tc.id, results };
+        })
+      );
+      // Inject tool_result blocks into the messages array
+      enrichedMessages = this.injectToolResults(body.messages, searchResults);
+    } else {
+      // No tool_use blocks yet — client is asking the model to perform a search.
+      // Execute the search ourselves based on the last user message and prepend results.
+      const lastUserMsg = [...body.messages].reverse().find((m: any) => m.role === 'user');
+      if (lastUserMsg) {
+        let query = '';
+        const textBlocks = Array.isArray(lastUserMsg.content)
+          ? lastUserMsg.content.filter((b: any) => b.type === 'text').map((b: any) => b.text)
+          : [typeof lastUserMsg.content === 'string' ? lastUserMsg.content : ''];
+        const fullText = textBlocks.join(' ');
+        // Try to extract explicit query from instructions like "Perform a web search for the query: ..."
+        const match = fullText.match(/query[:：]\s*(.+)/i);
+        query = match ? match[1].trim() : fullText.trim();
+        if (query) {
+          const results = await WebSearchService.search(query);
+          const resultText = WebSearchService.formatResults(results);
+          enrichedMessages = [
+            ...body.messages,
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `Here are the web search results:\n\n${resultText}`,
+                },
+              ],
+            },
+          ];
+        }
+      }
+    }
 
-    // Inject tool_result blocks into the messages array
-    const enrichedMessages = this.injectToolResults(body.messages, searchResults);
-
-    // Strip web_search_preview from tools list
+    // Strip all built-in web search tools from tools list
     const cleanedTools = Array.isArray(body.tools)
-      ? body.tools.filter((t: any) => t.name !== 'web_search_preview')
+      ? body.tools.filter((t: any) => !isBuiltInWebSearchTool(t))
       : body.tools;
 
-    // Fix tool_choice if it references the stripped tool
+    // Fix tool_choice if it references a stripped tool
     let cleanedToolChoice = body.tool_choice;
-    if (body.tool_choice?.name === 'web_search_preview') {
+    if (
+      body.tool_choice?.type === 'tool' &&
+      isBuiltInWebSearchTool({ name: body.tool_choice.name, type: body.tool_choice.name })
+    ) {
       cleanedToolChoice = 'auto';
     }
 
@@ -62,7 +115,7 @@ export const AnthropicEnricher = {
   },
 
   /**
-   * Find all tool_use blocks with name === 'web_search_preview' inside the
+   * Find all tool_use blocks with built-in web search names inside the
    * messages[].content[] arrays.
    */
   extractWebSearchToolCalls(messages: any[]): ToolUseBlock[] {
@@ -72,7 +125,7 @@ export const AnthropicEnricher = {
       if (!Array.isArray(msg.content)) continue;
 
       for (const block of msg.content) {
-        if (block?.type === 'tool_use' && block?.name === 'web_search_preview') {
+        if (block?.type === 'tool_use' && BUILT_IN_WEB_SEARCH_NAMES.includes(block?.name)) {
           calls.push({
             id: block.id || block.tool_use_id || `search_${calls.length}`,
             name: block.name,
